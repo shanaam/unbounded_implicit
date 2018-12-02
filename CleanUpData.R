@@ -108,15 +108,28 @@ MakeNoCursorClean <- function(rawDataIE,rawDataEI){
   #merge all the Medians rows
   
   masterCSV <- rbind(baselineMedians, exclude15Medians, exclude30Medians, exclude45Medians, exclude60Medians, include15Medians, include30Medians, include45Medians, include60Medians)
+  
   masterCSV$task <- NULL
   masterCSV$trial <- NULL
   masterCSV$rotation_angle_deg <- NULL
   
+  #use sweep to subtract baseline
+  masterMatrix <- data.matrix(masterCSV)
+  masterCSVminusBL <- sweep(masterMatrix, 2, masterMatrix[1,])
+  
+  #transpose and save the baseline corrected csv
+  transposedMasterCSVminusBL <- t(masterCSVminusBL)
+  colnames(transposedMasterCSVminusBL) <- c("baselineMedians", "exclude15Medians", "exclude30Medians", "exclude45Medians", "exclude60Medians", "include15Medians", "include30Medians", "include45Medians", "include60Medians")
+  write.csv(transposedMasterCSVminusBL, file= "data/BLCorrectedNoCursorMedians.csv")
+  
+  #transpose and save the non-bl-correted csv
   transposedMasterCSV <- t(masterCSV)
-  
   colnames(transposedMasterCSV) <- c("baselineMedians", "exclude15Medians", "exclude30Medians", "exclude45Medians", "exclude60Medians", "include15Medians", "include30Medians", "include45Medians", "include60Medians")
-  
   write.csv(transposedMasterCSV, file= "data/noCursorMedians.csv")
+}
+
+SubtractBL <- function(df){
+  df
 }
 
 MakeNoCursorClean(rawDataIE_trial, rawDataEI_trial)
