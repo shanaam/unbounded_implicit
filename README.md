@@ -1,7 +1,7 @@
 # RigidImplicit
 Data and code from the Rigid Implicit learnign experiment.
 
-##INCLUDES:
+## INCLUDES:
 
 * R code to clean up pre-processed data files into easy to analyze versions
   INSTRUCTIONS
@@ -11,7 +11,7 @@ Data and code from the Rigid Implicit learnign experiment.
   
 * The aforementioned cleaned up csvs, and pre-processed data files
 
-##TO COME:
+## TO COME:
 
 * R code for relevant stats using the cleaned up data files
 * R or Python code for creating relevant plots using the cleaned up data files
