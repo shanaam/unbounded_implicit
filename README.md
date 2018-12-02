@@ -3,8 +3,13 @@ Data and code from the Rigid Implicit learnign experiment.
 
 ##INCLUDES:
 
-* R code to clean up raw data files into easy to analyze versions
-* The aforementioned cleaned up csvs
+* R code to clean up pre-processed data files into easy to analyze versions
+  INSTRUCTIONS
+  + Clone or download
+  + Open CleanUpData.R and source (next to the "Run" button in R Studio)
+  + NOTE: If you get an error and a CSV filled with NA values, run the file a second time
+  
+* The aforementioned cleaned up csvs, and pre-processed data files
 
 ##TO COME:
 
