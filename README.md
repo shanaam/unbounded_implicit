@@ -1,5 +1,5 @@
 # RigidImplicit
-Data and code from the Rigid Implicit learnign experiment.
+Data and code from the Rigid Implicit learning experiment.
 
 ## INCLUDES:
 
