@@ -53,6 +53,10 @@ stepwise_meanDF <- data.frame('deviations' = stepwise_means,
 
 
 # plots
+
+library(ggplot2)
+library(ggbeeswarm)
+
 s <- ggplot(abrupt_meanDF, aes(x = trials, y = deviations)) +
   theme_minimal() +
   geom_smooth(data = abrupt_meanDF[1:45, ], aes(x = trials,
@@ -61,22 +65,22 @@ s <- ggplot(abrupt_meanDF, aes(x = trials, y = deviations)) +
   geom_smooth(data = abrupt_meanDF[46:66, ], aes(x = trials,
                                                 y = deviations, ymin =ci_lower, ymax = ci_upper), 
               stat = "identity", colour = "#005DE4", fill = "#005DE4", size = 3) +
-  scale_x_continuous(name = "trial") +
-  scale_y_continuous(limits = c(0, 60), breaks = c(15, 30, 45, 60), name = "cursor deviation") +
-  theme(text = element_text(size=36), axis.text = element_text(size=36), legend.text = element_text(size=36))
+  scale_x_continuous(name = "trial", breaks = c(0, 30, 60)) +
+  scale_y_continuous(limits = c(0, 70), breaks = c(0, 15, 30, 45, 60), name = "cursor deviation") +
+  theme(text = element_text(size=40), axis.text = element_text(size=40), legend.text = element_text(size=48), panel.grid.major.y = element_line(colour = "#ABABAB"))
 
 s
-ggsave(s, height = 8, width = 10, device = "svg", filename = "data/abrupt_LC_plot.svg")
+ggsave(s, height = 8, width = 7.5, device = "svg", filename = "data/abrupt_LC_plot.svg")
 
 # plots
 t <- ggplot(stepwise_meanDF, aes(x = trials, y = deviations)) +
   theme_minimal() +
   geom_smooth(data = stepwise_meanDF, aes(x = trials,
                                                 y = deviations, ymin =ci_lower, ymax = ci_upper), 
-              stat = "identity", colour = "#009C43", fill = "#009C43", size = 3) +
-  scale_x_continuous(name = "trial") +
-  scale_y_continuous(limits = c(0, 60), breaks = c(15, 30, 45, 60), name = "cursor deviation") +
-  theme(text = element_text(size=36), axis.text = element_text(size=36), legend.text = element_text(size=36))
+              stat = "identity", colour = "#D40000", fill = "#D40000", size = 3) +
+  scale_x_continuous(name = "trial", breaks = c(0, 30, 60, 90, 120, 150, 180, 210, 240)) +
+  scale_y_continuous(limits = c(0, 70), breaks = c(0, 15, 30, 45, 60), name = "cursor deviation") +
+  theme(text = element_text(size=40), axis.text = element_text(size=40), legend.text = element_text(size=48), panel.grid.major.y = element_line(colour = "#ABABAB"))
 
 t
 ggsave(t, height = 8, width = 25, device = "svg", filename = "data/stepwise_LC_plot.svg")

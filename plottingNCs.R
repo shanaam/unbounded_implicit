@@ -106,38 +106,43 @@ bothExps <- rbind(stepwise60, abruptNoCurSummary)
 
 # plots
 library(ggplot2)
+library(ggbeeswarm)
 
 p <- ggplot(stepwiseNoCurSummary, aes(rot, meanDeviation, colour = strat)) +
-  geom_point(size = 14) + 
+  geom_beeswarm(data = noCur60, aes(x = 85 + 5, y = deviation), size = 3, alpha = 0.6) +
+  geom_beeswarm(data = noCurMedians, aes(x = rot + 5, y = meanDeviation), size = 3, alpha = 0.6) +
+  geom_point(size = 14, alpha = 1) + 
   geom_linerange(aes(ymin = meanDeviation - ci, ymax = meanDeviation + ci), 
                   lwd = 20, alpha = 0.4) +
-  geom_point(size = 14, data = abruptNoCurSummary, aes(x = 75, y = deviation)) + 
-  geom_linerange(data = abruptNoCurSummary, aes(x = 75, y = deviation, ymin =deviation - ci, ymax = deviation + ci), 
+  geom_point(size = 14, data = abruptNoCurSummary, aes(x = 85, y = deviation), alpha = 1) + 
+  geom_linerange(data = abruptNoCurSummary, aes(x = 85, y = deviation, ymin =deviation - ci, ymax = deviation + ci), 
                   lwd = 20, alpha = 0.4) +
-  scale_x_continuous(limits = c(10, 80), breaks = c(15, 30, 45, 60, 75), labels = c(15, 30, 45, 60, 60), name = "rotation size") +
-  scale_y_continuous(limits = c(0, 45), breaks = c(15, 30, 45), name = "cursor deviation") +
+  scale_x_continuous(limits = c(10, 95), breaks = c(15, 30, 45, 60, 85), labels = c(15, 30, 45, 60, 60), name = "rotation size") +
+  scale_y_continuous(limits = c(0, 45), breaks = c(0, 15, 30, 45), name = "cursor deviation") +
   theme_minimal() +
-  theme(text = element_text(size=48), axis.text = element_text(size=48), legend.text = element_text(size=48)) +
+  theme(text = element_text(size=40), axis.text = element_text(size=40), legend.text = element_text(size=48), panel.grid.major.y = element_line(colour = "#ABABAB")) + 
   scale_color_manual(values=c("#FFA47E", "#00BFC4"), name="Strategy Use",  
                      breaks=c("exc", "inc"),
-                     labels=c("exclude", "include")) 
+                     labels=c("without strategy", "with strategy")) 
   
 p
 
-ggsave(p, height = 14, width = 16, device = "svg", filename = "data/noCur_plot.svg")
+ggsave(p, height = 14, width = 24, device = "svg", filename = "data/noCur_plot.svg")
 
 # comparing groups
 r <- ggplot(bothExps, aes(x = strat, y = deviation, colour = exp)) +
-  geom_point(size = 14) + 
   theme_minimal() +
+  geom_beeswarm(data = noCur60, aes(x = strat, y = deviation, colour = "#005DE4"), size = 3, alpha = 0.6) +
+  geom_beeswarm(data = noCurMedians[noCurMedians$rot == 60, ], aes(x = strat, y = meanDeviation, colour = "#D40000"), size = 3, alpha = 0.6) +
+  geom_point(size = 14) + 
   geom_linerange(aes(ymin =deviation - ci, ymax = deviation + ci), lwd = 20, alpha = 0.4) +
-  scale_x_discrete(name = "strategy use", labels = c('exclude', 'include')) +
-  scale_y_continuous(limits = c(0, 45), breaks = c(15, 30, 45, 60), name = "cursor deviation") +
-  scale_color_manual(values=c("#005DE4", "#CB5E99"), name = 'Experiment') + 
-  theme(text = element_text(size=48), axis.text = element_text(size=48), legend.text = element_text(size=48))
-  
+  scale_x_discrete(name = "strategy use", labels = c('without strategy', 'with strategy')) +
+  scale_y_continuous(limits = c(0, 45), breaks = c(0, 15, 30, 45, 60), name = "cursor deviation") +
+  scale_color_manual(values=c("#005DE4", "#D40000", "#005DE4", "#D40000"), labels=c("abrupt experiment", "stepwise experiment", "abrupt experiment", "stepwise experiment"), name = 'Experiment') + 
+  theme(text = element_text(size=40), axis.text = element_text(size=40), legend.text = element_text(size=48), panel.grid.major.y = element_line(colour = "#ABABAB"))
+
 r
-ggsave(r, height = 14, width = 16, device = "svg", filename = "data/both_noCur_plot.svg")
+ggsave(r, height = 14, width = 20, device = "svg", filename = "data/both_noCur_plot.svg")
 
 
 # q <- ggplot(abruptNoCurSummary, aes(x = 60, y = deviation, colour = strat)) +
