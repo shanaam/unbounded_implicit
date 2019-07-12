@@ -86,7 +86,7 @@ noCur60rawExc <- GetRowsWithString("no-cursor_60_exc", noCur60raw)
 noCur60rawExc <- noCur60rawExc[, 5:29]
 noCur60ExcMedians <- apply(noCur60rawExc, 2, median, na.rm = TRUE)
 
-noCur60 <- data.frame(deviation = append(noCur60IncMeans, noCur60ExcMedians),
+noCur60 <- data.frame(deviation = append(noCur60IncMedians, noCur60ExcMedians),
                       strat = append(rep('inc', 25), rep('exc', 25)))
 
 # summary
@@ -118,7 +118,7 @@ p <- ggplot(stepwiseNoCurSummary, aes(rot, meanDeviation, colour = strat)) +
   geom_linerange(data = abruptNoCurSummary, aes(x = 85, y = deviation, ymin =deviation - ci, ymax = deviation + ci), 
                   lwd = 20, alpha = 0.4) +
   scale_x_continuous(limits = c(10, 95), breaks = c(15, 30, 45, 60, 85), labels = c(15, 30, 45, 60, 60), name = "rotation size") +
-  scale_y_continuous(limits = c(0, 45), breaks = c(0, 15, 30, 45), name = "cursor deviation") +
+  scale_y_continuous(limits = c(0, 45), breaks = c(0, 15, 30, 45), name = "hand deviation (°)") +
   theme_minimal() +
   theme(text = element_text(size=40), axis.text = element_text(size=40), legend.text = element_text(size=48), panel.grid.major.y = element_line(colour = "#ABABAB")) + 
   scale_color_manual(values=c("#FFA47E", "#00BFC4"), name="Strategy Use",  
@@ -137,12 +137,31 @@ r <- ggplot(bothExps, aes(x = strat, y = deviation, colour = exp)) +
   geom_point(size = 14) + 
   geom_linerange(aes(ymin =deviation - ci, ymax = deviation + ci), lwd = 20, alpha = 0.4) +
   scale_x_discrete(name = "strategy use", labels = c('without strategy', 'with strategy')) +
-  scale_y_continuous(limits = c(0, 45), breaks = c(0, 15, 30, 45, 60), name = "cursor deviation") +
+  scale_y_continuous(limits = c(0, 45), breaks = c(0, 15, 30, 45, 60), name = "hand deviation (°)") +
   scale_color_manual(values=c("#005DE4", "#D40000", "#005DE4", "#D40000"), labels=c("abrupt experiment", "stepwise experiment", "abrupt experiment", "stepwise experiment"), name = 'Experiment') + 
   theme(text = element_text(size=40), axis.text = element_text(size=40), legend.text = element_text(size=48), panel.grid.major.y = element_line(colour = "#ABABAB"))
 
 r
 ggsave(r, height = 14, width = 20, device = "svg", filename = "data/both_noCur_plot.svg")
+
+
+
+# comparing groups
+s <- ggplot(bothExps[bothExps$strat == 'exc'], aes(x = strat, y = deviation, colour = exp)) +
+  theme_minimal() +
+  geom_beeswarm(data = noCur60, aes(y = deviation, colour = "#005DE4"), size = 3, alpha = 0.6) +
+  geom_beeswarm(data = noCurMedians[noCurMedians$rot == 60, ], aes(y = meanDeviation, colour = "#D40000"), size = 3, alpha = 0.6) +
+  geom_point(size = 14) + 
+  geom_linerange(aes(ymin =deviation - ci, ymax = deviation + ci), lwd = 20, alpha = 0.4) +
+  scale_x_discrete(name = "strategy use", labels = c('without strategy', 'with strategy')) +
+  scale_y_continuous(limits = c(0, 45), breaks = c(0, 15, 30, 45, 60), name = "hand deviation (°)") +
+  scale_color_manual(values=c("#005DE4", "#D40000", "#005DE4", "#D40000"), labels=c("abrupt experiment", "stepwise experiment", "abrupt experiment", "stepwise experiment"), name = 'Experiment') + 
+  theme(text = element_text(size=40), axis.text = element_text(size=40), legend.text = element_text(size=48), panel.grid.major.y = element_line(colour = "#ABABAB"))
+
+s
+
+
+
 
 
 # q <- ggplot(abruptNoCurSummary, aes(x = 60, y = deviation, colour = strat)) +

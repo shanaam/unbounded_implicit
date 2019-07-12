@@ -1,0 +1,143 @@
+---
+title: "Unbounded Implicit Learning - Detailed Analysis"
+author: "Shanaathanan Modchalingam"
+date: "July 2, 2019"
+output: 
+  html_notebook:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+# source("someScript.R")
+library(tidyverse)
+```
+
+# Some backround
+
+A few studies show that implicit adaptation is 'rigid'. 
+'Rigid' in this context means an upper boundary on adaptation.
+
+These studies include (but are not limited to)
+
+### Bond & Taylor (2015)
+Here, people adapted to visuomotor rotations and provided aiming directions __prior__ to every reach. 
+Implicit learning was measured by subtracting the aiming direction from the direction of movement.  
+
+__Movement type:__ Balistic movements (<400 ms) and end-point feedback  
+__Target parameters:__ 7 cm distance, radial target locations    
+__Other:__ Participants were reminded "always moving directly to the target may not be effective" every 40 trials  
+
+__Interesting tidbits:__ training to 1 target actually  resulted in higher implicit learning (30°!). 
+2 and 4 targets resulted in 17 - 20°.  
+Final implicit learning was ~10° for 15, 30, 60 and 90° rotations -- this did not differ between groups.
+
+
+### Kim et al. (2019)
+Here, people adapted to a constant visual error. That is, the error was present and consistent, regardless 
+
+__Movement type:__ Clamped. Slicing movements (<300 ms)  
+__Target parameters:__ 8 cm distance, radial target locations, 8 targets (in exp 1) or 4 targets (in exp 2)  
+__Other:__ Patricipants were instructed to ignore the visual error.
+
+__Interesting tidbits:__ 
+
+
+### Modchalingam et al. (20??)
+
+__Movement type:__ Non-balistic  
+__Target parameters:__ 12 cm distance, located 45, 90, 135 degrees in polar coordinates  
+__Other:__ 
+
+__Interesting tidbits:__ 
+
+# No-cursor analysis
+
+First, we analyze the no-cursor data. Here-in lies our main question; do implicit aftereffects
+
+## Preprocessing
+
+### Load the omnibus data file
+
+First, we will load in the omnibus dataframe. This dataframe contains every no-cursor reach for every participant, including during the aligned training phase. Below is a sample of the dataframe.  
+
+```{r, cols.print = 10, warning=FALSE}
+
+omnibus_nocur <- read_delim("data/omnibus/omnibus_nocur.csv", 
+                            delim = ",", 
+                            col_types = cols(.default = col_double(), 
+                                             task_num = col_factor(),
+                                             trial_num = col_factor(),
+                                             rotation_angle = col_factor(),
+                                             targetangle_deg = col_factor(),
+                                             ppt = col_character(),
+                                             stratuse = col_factor()))
+
+head(omnibus_nocur)
+
+```
+
+The column of interest is "angular_dev". It contains, in degrees, the amount participants deviated from a straight-line reach towards the target.   
+
+### Baseline correction
+
+The first thing we will do is correct for baseline deviations in training.  
+To do this, we will subset the above dataframe into 2 dataframes; one containing data from only the rotated session, and one containing data from only the aligned session.  
+
+```{r}
+rot_nocur <- filter(omnibus_nocur, rotation_angle != 0)
+
+head(rot_nocur)
+```
+
+```{r}
+bl_nocur <- filter(omnibus_nocur, rotation_angle == 0)
+
+head(bl_nocur)
+```
+
+Next, we need to apply a function to the rotated-session data. From each angular deviation, we will subtract the mean angular deviation of all baseline angular deviations that share the same participant and target angle. 
+
+The functions is as follows. 
+
+```{r}
+apply_blcorrection <- function(rot_df_row, bl_df){
+  
+  # make sure input is in format: targetangle_deg, ppt, angular_dev
+
+  bl <- filter(bl_df, 
+               targetangle_deg == rot_df_row[1] & 
+                 ppt == rot_df_row[2])$angular_dev %>% 
+    mean(na.rm = TRUE)
+
+  
+  corrected_dev <- as.numeric(rot_df_row[3]) - bl
+  
+  return(corrected_dev)
+}
+```
+
+Applying the above function to rotated-session-data.
+
+```{r}
+rot_nocur$temp <- select(rot_nocur, targetangle_deg, ppt, angular_dev) %>%
+  apply(1, FUN = apply_blcorrection, bl_df = bl_nocur)
+
+# rename some columns
+rot_nocur <- rot_nocur %>% 
+  rename(raw_angular_dev = angular_dev) %>%
+  rename(angular_dev = temp)
+
+head(rot_nocur)
+```
+
+We now have an angular deviation column that is baseline corrected. We will use the _rot_nocur_ dataframe from now on.
+
+__We might want to use group by to get participant means!__
+
+## Visualizing the data
+
+We are interested in whether...

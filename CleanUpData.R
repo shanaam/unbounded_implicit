@@ -2,7 +2,6 @@
 ## Rigid Implicit Experiment ##
 ###############################
 
-#set the working directory to wherever this file is located
 options(stringsAsFactors = FALSE)
 
 rawDataEI_trial <- read.csv("data/multipleRotation/rigid_implicit_exp_EI_trial.csv")
