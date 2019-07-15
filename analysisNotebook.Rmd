@@ -12,8 +12,9 @@ output:
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
-# source("someScript.R")
+source("analysisFunctions.R")
 library(tidyverse)
+library(ggbeeswarm)
 ```
 
 # Some backround
@@ -74,7 +75,8 @@ omnibus_nocur <- read_delim("data/omnibus/omnibus_nocur.csv",
                                              rotation_angle = col_factor(),
                                              targetangle_deg = col_factor(),
                                              ppt = col_character(),
-                                             stratuse = col_factor()))
+                                             stratuse = col_factor(),
+                                             exp = col_character()))
 
 head(omnibus_nocur)
 
@@ -138,6 +140,59 @@ We now have an angular deviation column that is baseline corrected. We will use 
 
 __We might want to use group by to get participant means!__
 
+Now we will get a mean for each participant
+
+```{r}
+nocur_summary <- rot_nocur %>%
+  group_by(exp, ppt, rotation_angle, stratuse) %>%
+  summarise(mean_devs = mean(angular_dev), sd = sd(angular_dev), ci = vector_confint(angular_dev))
+
+nocur_summary
+```
+
+
 ## Visualizing the data
+
+
+```{r}
+p <- nocur_summary %>%
+  filter(exp == 'abruptExp') %>%
+  group_by(stratuse) %>%
+  summarise(mean_dev = mean(mean_devs), ci = vector_confint(mean_devs)) %>%
+  ggplot(aes(stratuse, mean_dev)) +
+  geom_point(size = 3, alpha = 1) +
+  geom_linerange(aes(ymin = mean_dev - ci, ymax = mean_dev + ci),
+                 lwd = 3, alpha = 0.4) +
+  geom_beeswarm(data = filter(nocur_summary, exp == 'abruptExp'), 
+                aes(y = mean_devs),
+                size = 3, alpha = 0.2) +
+  scale_y_continuous(limits = c(-5, 60), 
+                     breaks = c(0, 15, 30, 45, 60), 
+                     name = "hand deviation (°)") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line(colour = "#ABABAB", alpha = )) 
+
+  
+  # geom_beeswarm(data = noCur60, aes(x = 85 + 5, y = deviation), size = 3, alpha = 0.6) +
+  # geom_beeswarm(data = noCurMedians, aes(x = rot + 5, y = meanDeviation), size = 3, alpha = 0.6) +
+  # geom_point(size = 14, alpha = 1) +
+  # geom_linerange(aes(ymin = meanDeviation - ci, ymax = meanDeviation + ci),
+  #                 lwd = 20, alpha = 0.4) +
+  # geom_point(size = 14, data = abruptNoCurSummary, aes(x = 85, y = deviation), alpha = 1) +
+  # geom_linerange(data = abruptNoCurSummary, aes(x = 85, y = deviation, ymin =deviation - ci, ymax = deviation + ci),
+  #                 lwd = 20, alpha = 0.4) +
+  # scale_x_continuous(limits = c(10, 95), 
+  #                    breaks = c(15, 30, 45, 60, 85), 
+  #                    labels = c(15, 30, 45, 60, 60), name = "rotation size") +
+  # scale_color_manual(values=c("#FFA47E", "#00BFC4"), name="Strategy Use",
+  #                    breaks=c("exc", "inc"),
+  #                    labels=c("without strategy", "with strategy"))
+  # theme(text = element_text(size=40), 
+  #       axis.text = element_text(size=40), 
+  #       legend.text = element_text(size=48))
+
+  
+p
+```
 
 We are interested in whether...

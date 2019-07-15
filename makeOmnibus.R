@@ -67,6 +67,8 @@ makeNoCurOmnibus <- function(){
           maxVrows$V19 <- 0
         }
         
+        maxVrows$V20 <- expVersion
+        
         # save this one df to datalist
         datalist[[i]] <- maxVrows
         
@@ -80,7 +82,7 @@ makeNoCurOmnibus <- function(){
                                "terminalfeedback_bool", "rotation_angle", "targetangle_deg", 
                                "targetdistance_percmax", "homex_px", "homey_px", "targetx_px", 
                                "targety_px", "time_s", "mousex_px", "mousey_px", "cursorx_px", 
-                               "cursory_px", "ppt", "stratuse")
+                               "cursory_px", "ppt", "stratuse", "exp")
   
   # get the angles
   omnibus_nocur$angular_dev <- apply(omnibus_nocur[ , c('cursorx_px', 'cursory_px', 'homex_px', 'homey_px', 'targetangle_deg')], 
@@ -95,6 +97,39 @@ makeNoCurOmnibus <- function(){
   
 }
 
+
+makeTrainingOmnibus <- function(){
+  path <- "data/selected"
+  datalist <- list()
+  i <- 1
+  for (expVersion in list.files(path = path)){
+    for (ppt in list.files(path = paste(path, expVersion, sep = '/'))){
+      
+      # make a vector of filenames to load (these are entire paths)       
+      filesToLoad <- list.files(path = paste(path, expVersion, ppt, sep = '/'), 
+                                pattern = glob2rx("*training*"), 
+                                full.names = TRUE)
+      
+      for (filePath in filesToLoad){
+        
+        df <- fread(filePath, stringsAsFactors = FALSE)
+        
+        maxVrows <- XXX #df[df$V21 == 1 & df$V18 == 1, V1:V17]
+        # we need to extract one row per trial
+        # the above works for selected data cause selector indicates the points at maxV
+        
+        #add new columns
+        # maxVrows$V18 <- paste(ppt, expVersion, sep = '_')
+        
+        # save this one df to datalist
+        datalist[[i]] <- maxVrows
+        
+        i <- i+1
+      }
+    }  
+  }
+  
+}
 
 ## ----
 ## Run the functions
