@@ -159,18 +159,19 @@ p <- nocur_summary %>%
   filter(exp == 'abruptExp') %>%
   group_by(stratuse) %>%
   summarise(mean_dev = mean(mean_devs), ci = vector_confint(mean_devs)) %>%
-  ggplot(aes(stratuse, mean_dev)) +
-  geom_point(size = 3, alpha = 1) +
+  ggplot(aes(stratuse, mean_dev, colour = "mean + ci")) +
+  geom_beeswarm(data = filter(nocur_summary, exp == 'abruptExp'), 
+                aes(y = mean_devs, colour = "individual ppts"),
+                size = 3, alpha = 0.2) +
   geom_linerange(aes(ymin = mean_dev - ci, ymax = mean_dev + ci),
                  lwd = 3, alpha = 0.4) +
-  geom_beeswarm(data = filter(nocur_summary, exp == 'abruptExp'), 
-                aes(y = mean_devs),
-                size = 3, alpha = 0.2) +
+  geom_point(size = 3, alpha = 1) +
   scale_y_continuous(limits = c(-5, 60), 
                      breaks = c(0, 15, 30, 45, 60), 
                      name = "hand deviation (°)") +
   theme_minimal() +
-  theme(panel.grid.major = element_line(colour = "#ABABAB", alpha = )) 
+  theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+  scale_color_manual(values=c("#000000", "#FFA47E"))
 
   
   # geom_beeswarm(data = noCur60, aes(x = 85 + 5, y = deviation), size = 3, alpha = 0.6) +

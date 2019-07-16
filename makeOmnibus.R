@@ -107,7 +107,7 @@ makeTrainingOmnibus <- function(){
       
       # make a vector of filenames to load (these are entire paths)       
       filesToLoad <- list.files(path = paste(path, expVersion, ppt, sep = '/'), 
-                                pattern = glob2rx("*training*"), 
+                                pattern = glob2rx("*training*|*traning*"), 
                                 full.names = TRUE)
       
       for (filePath in filesToLoad){
