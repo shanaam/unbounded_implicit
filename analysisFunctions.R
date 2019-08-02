@@ -32,3 +32,6 @@ vector_confint <- function(vector, interval = 0.95) {
   # result <- c("lower" = vec_mean - error, "upper" = vec_mean + error)
   return(error)
 }
+
+# get the magnitude (euclidian normal) of a vector (this is faster than R's built in norm)
+norm_vec(vector) <- function(vector){sqrt(crossprod(vector))}
