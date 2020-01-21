@@ -22,13 +22,22 @@
 ## ----
 ## Load packages
 library(data.table)
-
+library(tidyverse)
 ## ----
 ## Functions
 # function for making the omnubus thing
 
 applyAtan2 <- function(df){
   return(((atan2(df[2] - df[4], df[1] - df[3]) * 180/pi) %% 360) - df[5]) # atan2(y,x) -- atan2 takes y first
+}
+
+applyStratUse <- function(taskName){
+  if (grepl("include", taskName)){
+    return (1)
+  }
+  else {
+    return (0)
+  }
 }
 
 makeNoCurOmnibus <- function(){
@@ -42,32 +51,54 @@ makeNoCurOmnibus <- function(){
     for (ppt in list.files(path = paste(path, expVersion, sep = '/'))){
       
       # make a vector of filenames to load (these are entire paths)       
-      filesToLoad <- list.files(path = paste(path, expVersion, ppt, sep = '/'), 
-                                pattern = glob2rx("*no-cursor*selected*"), 
+      filesToLoad <- 
+        list.files(path = paste(path, expVersion, ppt, sep = '/'), 
+                                pattern = glob2rx("*no-cursor*selected*|*no_cursor*selected*"), 
                                 full.names = TRUE)
+      
+      # filter out the practice trials if there are any
+      filesToLoad <-
+        filesToLoad[!grepl("practice",filesToLoad)]
       
       for (filePath in filesToLoad){
         
         df <- fread(filePath, stringsAsFactors = FALSE)
         
-        maxVrows <- df[df$V21 == 1 & df$V18 == 1, V1:V17]
+        # fix column names
+        if (colnames(df)[1] == "V1"){
+          colnames(df) <- c("task_num", "task_name", "trial_type", "trial_num", 
+                                       "terminalfeedback_bool", "rotation_angle", "targetangle_deg", 
+                                       "targetdistance_percmax", "homex_px", "homey_px", "targetx_px", 
+                                       "targety_px", "time_s", "mousex_px", "mousey_px", "cursorx_px", 
+                                       "cursory_px", "selected", "P", "?", "maxV", "??")
+        }
+        
+        maxVrows <- df[df$selected == 1 & df$maxV == 1, task_num:cursory_px]
         
         #add new columns
-        maxVrows$V18 <- paste(ppt, expVersion, sep = '_')
+        maxVrows$ppt <- paste(ppt, expVersion, sep = '_')
         
         if (expVersion == "abruptExp"){
-          maxVrows$V6[maxVrows$V1 >= 14] <- -60
+          maxVrows$rotation_angle[maxVrows$task_num >= 14] <- -60
         } 
         
-        # add in whether the trial was instructed or not
-        if (grepl("include", filePath)){
-          maxVrows$V19 <- 1
-        }
-        else {
-          maxVrows$V19 <- 0
+        if (expVersion == "longAbruptExp" & grepl("rotated", filePath)) {
+          maxVrows$rotation_angle <- -60
         }
         
-        maxVrows$V20 <- expVersion
+        
+        # add in whether the trial was instructed or not
+        if (typeof(maxVrows$trial_type) == "character") {
+          maxVrows$stratuse <- lapply(maxVrows$task_name, applyStratUse)
+        } else {
+          if (grepl("include", filePath)){
+            maxVrows$stratuse <- 1
+          } else {
+            maxVrows$stratuse <- 0
+          }
+        }
+        
+        maxVrows$exp <- expVersion
         
         # save this one df to datalist
         datalist[[i]] <- maxVrows
@@ -78,6 +109,8 @@ makeNoCurOmnibus <- function(){
   }
   
   omnibus_nocur <- do.call(rbind, datalist)
+  
+  
   colnames(omnibus_nocur) <- c("task_num", "task_name", "trial_type", "trial_num", 
                                "terminalfeedback_bool", "rotation_angle", "targetangle_deg", 
                                "targetdistance_percmax", "homex_px", "homey_px", "targetx_px", 
@@ -85,7 +118,7 @@ makeNoCurOmnibus <- function(){
                                "cursory_px", "ppt", "stratuse", "exp")
   
   # get the angles
-  omnibus_nocur$angular_dev <- apply(omnibus_nocur[ , c('cursorx_px', 'cursory_px', 'homex_px', 'homey_px', 'targetangle_deg')], 
+  omnibus_nocur$angular_dev <- apply(omnibus_nocur[ , c('mousex_px', 'mousey_px', 'homex_px', 'homey_px', 'targetangle_deg')], 
                                      1, FUN = applyAtan2)
   
   # remove useless columns
@@ -102,35 +135,76 @@ makeTrainingOmnibus <- function(){
   path <- "data/selected"
   datalist <- list()
   i <- 1
-  for (expVersion in list.files(path = path)){
+  for (expVersion in c("longAbruptExp", "stepwiseExp")){
     for (ppt in list.files(path = paste(path, expVersion, sep = '/'))){
+      
+      trial_counter <- 1
       
       # make a vector of filenames to load (these are entire paths)       
       filesToLoad <- list.files(path = paste(path, expVersion, ppt, sep = '/'), 
-                                pattern = glob2rx("*training*|*traning*"), 
+                                pattern = glob2rx("*training*selected*|*traning*selected*"), 
                                 full.names = TRUE)
+      
+      # reorder if needed
+      if (expVersion == "stepwiseExp"){
+        filesToLoad <- filesToLoad[c(2, 1, 4, 3, 6, 5, 8, 7, 10, 9)]
+      }
       
       for (filePath in filesToLoad){
         
         df <- fread(filePath, stringsAsFactors = FALSE)
         
-        maxVrows <- XXX #df[df$V21 == 1 & df$V18 == 1, V1:V17]
-        # we need to extract one row per trial
-        # the above works for selected data cause selector indicates the points at maxV
+        maxVrows <- filter(df, selected == 1, maxV == 1)
         
         #add new columns
-        # maxVrows$V18 <- paste(ppt, expVersion, sep = '_')
+        maxVrows$ppt <- paste(ppt, expVersion, sep = '_')
         
+        # add exp version
+        maxVrows$exp <- expVersion
+        
+        # get rid of these columns if they occur
+        maxVrows$old_trial_num <- NULL
+        
+        maxVrows$trial_num_cont <- seq(from = trial_counter, length.out =nrow(maxVrows))
         # save this one df to datalist
         datalist[[i]] <- maxVrows
         
         i <- i+1
+        trial_counter <- trial_counter + nrow(maxVrows)
       }
     }  
   }
   
+  omnibus_training <- do.call(rbind, datalist)
+  
+  # get the angles
+  omnibus_training$angular_dev <- apply(omnibus_training[ , c('mousex_px', 'mousey_px', 'homex_px', 'homey_px', 'targetangle_deg')], 
+                                     1, FUN = applyAtan2)
+  
+  # remove useless columns
+  omnibus_training[ , c('task_name', 'trial_type', 'terminalfeedback_bool', 
+                     'targetdistance_percmax')] <- NULL
+  
+  # save the omnibus df
+  fwrite(omnibus_training, file = "data/omnibus/omnibus_training.csv")
 }
 
 ## ----
 ## Run the functions
-makeNoCurOmnibus()
+# makeNoCurOmnibus()
+makeTrainingOmnibus()
+
+
+#testing
+test <- data.frame("x" = c(1, 2, 3, 4, 5, 6, 7, 8))
+
+test$y <- c(1, 2, 3, 4, 5, 6, 7, 8)
+test$x <- factor(test$x)
+
+p <- ggplot (data = test, aes(x, y, colour = x)) +
+  geom_point() +
+  scale_colour_brewer()
+
+p
+
+ggsave(p, height = 13, width = 20, device = "svg", filename = "data/test.svg")

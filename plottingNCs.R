@@ -7,7 +7,7 @@
 ##   conf.interval: the percent range of the confidence interval (default is 95%)
 summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
                       conf.interval=.95, .drop=TRUE) {
-  library(plyr)
+  library(dplyr)
   
   # New version of length which can handle NA's: if na.rm==T, don't count them
   length2 <- function (x, na.rm=FALSE) {
@@ -127,7 +127,7 @@ p <- ggplot(stepwiseNoCurSummary, aes(rot, meanDeviation, colour = strat)) +
   
 p
 
-ggsave(p, height = 14, width = 24, device = "svg", filename = "data/noCur_plot.svg")
+ggsave(p, height = 14, width = 24, device = "svg", filename = "data/noCur_plot_block.svg")
 
 # comparing groups
 r <- ggplot(bothExps, aes(x = strat, y = deviation, colour = exp)) +
