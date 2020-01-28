@@ -111,6 +111,9 @@ makeSelectable_stepwise <- function() {
       
       rawDataFile$old_trial_num <- rawDataFile$trial_num
       rawDataFile$trial_num <- uq_trials
+      
+      # add a stratUse column
+      rawDataFile$stratUse <- as.numeric(grepl("include", rawDataFile$task_name))
         
       # remove practice trials
       rawDataFile <-
@@ -125,7 +128,7 @@ makeSelectable_stepwise <- function() {
         rawDataFile %>%
         filter(trial_type == "no_cursor", grepl("baseline",task_name))
       nocur_aligned_df$trial_type <- 0
-      nocur_aligned_df$task_name <- 0
+      nocur_aligned_df$task_name <- as.numeric(grepl("include", nocur_aligned_df$task_name))
       
       for(uq_trial_num in unique(nocur_aligned_df$trial_num)) {
         nocur_aligned_df[nocur_aligned_df$trial_num == uq_trial_num, ]$time_s <-
@@ -138,7 +141,7 @@ makeSelectable_stepwise <- function() {
         rawDataFile %>%
         filter(trial_type == "cursor", grepl("aligned",task_name))
       cursor_aligned_df$trial_type <- 0
-      cursor_aligned_df$task_name <- 0
+      cursor_aligned_df$task_name <- as.numeric(grepl("include", cursor_aligned_df$task_name))
       
       for(uq_trial_num in unique(cursor_aligned_df$trial_num)) {
         cursor_aligned_df[cursor_aligned_df$trial_num == uq_trial_num, ]$time_s <-
@@ -151,7 +154,7 @@ makeSelectable_stepwise <- function() {
         rawDataFile %>%
         filter(trial_type == "no_cursor", !grepl("baseline",task_name))
       nocur_rotated_df$trial_type <- 0
-      nocur_rotated_df$task_name <- 0
+      nocur_rotated_df$task_name <- as.numeric(grepl("include", nocur_rotated_df$task_name))
       
       for(uq_trial_num in unique(nocur_rotated_df$trial_num)) {
         nocur_rotated_df[nocur_rotated_df$trial_num == uq_trial_num, ]$time_s <-
@@ -164,7 +167,7 @@ makeSelectable_stepwise <- function() {
         rawDataFile %>%
         filter(trial_type == "cursor", !grepl("aligned",task_name))
       cursor_rotated_df$trial_type <- 0
-      cursor_rotated_df$task_name <- 0
+      cursor_rotated_df$task_name <- as.numeric(grepl("include", cursor_rotated_df$task_name))
       
       for(uq_trial_num in unique(cursor_rotated_df$trial_num)) {
         cursor_rotated_df[cursor_rotated_df$trial_num == uq_trial_num, ]$time_s <-
@@ -225,6 +228,9 @@ makeSelectable_longAbrupt <- function() {
         rawDataFile$old_trial_num <- rawDataFile$trial_num
         rawDataFile$trial_num <- uq_trials
         
+        # add a stratUse column
+        rawDataFile$stratUse <- as.numeric(grepl("include", rawDataFile$task_name))
+        
         # taskName = substr(file, 1, nchar(file) - 13)
         
         # remove practice trials
@@ -240,7 +246,7 @@ makeSelectable_longAbrupt <- function() {
           rawDataFile %>%
           filter(trial_type == "no_cursor", !grepl("_60",task_name))
         nocur_aligned_df$trial_type <- 0
-        nocur_aligned_df$task_name <- 0
+        nocur_aligned_df$task_name <- as.numeric(grepl("include", nocur_aligned_df$task_name))
         
         for(uq_trial_num in unique(nocur_aligned_df$trial_num)) {
           nocur_aligned_df[nocur_aligned_df$trial_num == uq_trial_num, ]$time_s <-
@@ -252,7 +258,7 @@ makeSelectable_longAbrupt <- function() {
           rawDataFile %>%
           filter(trial_type == "cursor", !grepl("_60",task_name))
         cursor_aligned_df$trial_type <- 0
-        cursor_aligned_df$task_name <- 0
+        cursor_aligned_df$task_name <- as.numeric(grepl("include", cursor_aligned_df$task_name))
         
         for(uq_trial_num in unique(cursor_aligned_df$trial_num)) {
           cursor_aligned_df[cursor_aligned_df$trial_num == uq_trial_num, ]$time_s <-
@@ -264,7 +270,7 @@ makeSelectable_longAbrupt <- function() {
           rawDataFile %>%
           filter(trial_type == "no_cursor", grepl("_60",task_name))
         nocur_rotated_df$trial_type <- 0
-        nocur_rotated_df$task_name <- 0
+        nocur_rotated_df$task_name <- as.numeric(grepl("include", nocur_rotated_df$task_name))
         
         for(uq_trial_num in unique(nocur_rotated_df$trial_num)) {
           nocur_rotated_df[nocur_rotated_df$trial_num == uq_trial_num, ]$time_s <-
@@ -276,7 +282,7 @@ makeSelectable_longAbrupt <- function() {
           rawDataFile %>%
           filter(trial_type == "cursor", grepl("_60",task_name))
         cursor_rotated_df$trial_type <- 0
-        cursor_rotated_df$task_name <- 0
+        cursor_rotated_df$task_name <- as.numeric(grepl("include", cursor_rotated_df$task_name))
         
         for(uq_trial_num in unique(cursor_rotated_df$trial_num)) {
           cursor_rotated_df[cursor_rotated_df$trial_num == uq_trial_num, ]$time_s <-
@@ -294,6 +300,118 @@ makeSelectable_longAbrupt <- function() {
   }
 }
 
+makeSelectable_gradual <- function() {
+  dataPathGradual <- 'data/raw/gradualExp'
+  
+  for (expVersion in list.files(path = dataPathGradual)){
+    for (participant in list.files(path = paste(dataPathGradual, expVersion, sep = '/'))){
+      
+      filePath <- paste(dataPathGradual, expVersion, participant, sep = '/')
+      dir.create(paste('data/toSelect/gradualExp/', participant, sep = ''))
+      
+      filesToLoad <- list.files(path = filePath, pattern = "COMPLETE")
+      
+      for (file in filesToLoad){
+        fileToLoad <- paste(dataPathGradual, expVersion, participant, file, sep = '/')
+        rawDataFile <- fread(fileToLoad, stringsAsFactors = FALSE)
+        # rawDataFile$task_name <- 1
+        # rawDataFile$trial_type <- 1
+        rawDataFile$terminalfeedback_bool <- 0
+        
+        trialCounter <- 1
+        trialList <- list()
+        
+        for(uq_task_num in unique(rawDataFile$task_num)){
+          
+          df <- 
+            rawDataFile %>%
+            filter(task_num == uq_task_num)
+          
+          for(uq_trial_num in unique(df$trial_num)) {
+            
+            trialList[[trialCounter]] <- rep(trialCounter, times = nrow(filter(df, trial_num == uq_trial_num)))
+            
+            trialCounter <- trialCounter + 1
+          }
+        }
+        
+        uq_trials <- do.call(c, trialList)
+        
+        rawDataFile$old_trial_num <- rawDataFile$trial_num
+        rawDataFile$trial_num <- uq_trials
+        
+        # add a stratUse column
+        rawDataFile$stratUse <- as.numeric(grepl("include", rawDataFile$task_name))
+        
+        # taskName = substr(file, 1, nchar(file) - 13)
+        
+        # remove practice trials
+        rawDataFile <-
+          rawDataFile %>%
+          filter(!grepl("practice",task_name))
+        
+        # recode
+        rawDataFile$terminalfeedback_bool <- 0
+        
+        
+        nocur_aligned_df <- 
+          rawDataFile %>%
+          filter(trial_type == "no_cursor", grepl("baseline",task_name))
+        nocur_aligned_df$trial_type <- 0
+        nocur_aligned_df$task_name <- as.numeric(grepl("include", nocur_aligned_df$task_name))
+        
+        for(uq_trial_num in unique(nocur_aligned_df$trial_num)) {
+          nocur_aligned_df[nocur_aligned_df$trial_num == uq_trial_num, ]$time_s <-
+            nocur_aligned_df[nocur_aligned_df$trial_num == uq_trial_num, ]$time_s -
+            nocur_aligned_df[nocur_aligned_df$trial_num == uq_trial_num, ]$time_s[1]
+        }
+        
+        cursor_aligned_df <- 
+          rawDataFile %>%
+          filter(trial_type == "cursor", grepl("aligned",task_name))
+        cursor_aligned_df$trial_type <- 0
+        cursor_aligned_df$task_name <- as.numeric(grepl("include", cursor_aligned_df$task_name))
+        
+        for(uq_trial_num in unique(cursor_aligned_df$trial_num)) {
+          cursor_aligned_df[cursor_aligned_df$trial_num == uq_trial_num, ]$time_s <-
+            cursor_aligned_df[cursor_aligned_df$trial_num == uq_trial_num, ]$time_s -
+            cursor_aligned_df[cursor_aligned_df$trial_num == uq_trial_num, ]$time_s[1]
+        }
+        
+        nocur_rotated_df <- 
+          rawDataFile %>%
+          filter(trial_type == "no_cursor", !grepl("baseline",task_name))
+        nocur_rotated_df$trial_type <- 0
+        nocur_rotated_df$task_name <- as.numeric(grepl("include", nocur_rotated_df$task_name))
+        
+        for(uq_trial_num in unique(nocur_rotated_df$trial_num)) {
+          nocur_rotated_df[nocur_rotated_df$trial_num == uq_trial_num, ]$time_s <-
+            nocur_rotated_df[nocur_rotated_df$trial_num == uq_trial_num, ]$time_s -
+            nocur_rotated_df[nocur_rotated_df$trial_num == uq_trial_num, ]$time_s[1]
+        }
+        
+        cursor_rotated_df <- 
+          rawDataFile %>%
+          filter(trial_type == "cursor", !grepl("aligned",task_name))
+        cursor_rotated_df$trial_type <- 0
+        cursor_rotated_df$task_name <- as.numeric(grepl("include", cursor_rotated_df$task_name))
+        
+        for(uq_trial_num in unique(cursor_rotated_df$trial_num)) {
+          cursor_rotated_df[cursor_rotated_df$trial_num == uq_trial_num, ]$time_s <-
+            cursor_rotated_df[cursor_rotated_df$trial_num == uq_trial_num, ]$time_s -
+            cursor_rotated_df[cursor_rotated_df$trial_num == uq_trial_num, ]$time_s[1]
+        }
+        
+        write.table(nocur_aligned_df, file = paste('data/toSelect/gradualExp/', participant, '/', participant, '_aligned_no_cursor.txt', sep = ''), sep = '\t', row.names = FALSE)
+        write.table(cursor_aligned_df, file = paste('data/toSelect/gradualExp/', participant, '/', participant, '_aligned_training.txt', sep = ''), sep = '\t', row.names = FALSE)
+        write.table(nocur_rotated_df, file = paste('data/toSelect/gradualExp/', participant, '/', participant, '_rotated_no_cursor.txt', sep = ''), sep = '\t', row.names = FALSE)
+        write.table(cursor_rotated_df, file = paste('data/toSelect/gradualExp/', participant, '/', participant, '_rotated_training.txt', sep = ''), sep = '\t', row.names = FALSE)
+        
+      }
+    }
+  }
+}
+
 ## ----
 ## Run the above functions
 
@@ -302,7 +420,8 @@ plan(multiprocess)
 
 #NOTE: %<-% is a "future assignment"
 # tempjob1 %<-% makeSelectable_abrupt()
-tempjob2 %<-% makeSelectable_stepwise()
-# tempjob3 %<-% makeSelectable_longAbrupt()
+# tempjob2 %<-% makeSelectable_stepwise()
+tempjob3 %<-% makeSelectable_longAbrupt()
+# tempjob4 %<-% makeSelectable_gradual()
 
 temp.list <- lapply(ls(pattern = "temp"), get)

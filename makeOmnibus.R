@@ -32,7 +32,7 @@ applyAtan2 <- function(df){
 }
 
 applyStratUse <- function(taskName){
-  if (grepl("include", taskName)){
+  if (grepl("include", taskName) | taskName == 1){
     return (1)
   }
   else {
@@ -64,8 +64,8 @@ makeNoCurOmnibus <- function(){
         
         df <- fread(filePath, stringsAsFactors = FALSE)
         
-        # fix column names
-        if (colnames(df)[1] == "V1"){
+        # fix column names (any data from MATLAB select gets "VX" colnames; only stepwise rn)
+        if (colnames(df)[1] == "V1"){ 
           colnames(df) <- c("task_num", "task_name", "trial_type", "trial_num", 
                                        "terminalfeedback_bool", "rotation_angle", "targetangle_deg", 
                                        "targetdistance_percmax", "homex_px", "homey_px", "targetx_px", 
@@ -82,15 +82,16 @@ makeNoCurOmnibus <- function(){
           maxVrows$rotation_angle[maxVrows$task_num >= 14] <- -60
         } 
         
-        if (expVersion == "longAbruptExp" & grepl("rotated", filePath)) {
+        if ((expVersion %in% c("longAbruptExp", "gradualExp")) & grepl("rotated", filePath)) {
           maxVrows$rotation_angle <- -60
         }
         
         
         # add in whether the trial was instructed or not
-        if (typeof(maxVrows$trial_type) == "character") {
+        if (typeof(maxVrows$trial_type) == "character" | expVersion %in% c("longAbruptExp", "gradualExp")) {
           maxVrows$stratuse <- lapply(maxVrows$task_name, applyStratUse)
-        } else {
+        }
+        else {
           if (grepl("include", filePath)){
             maxVrows$stratuse <- 1
           } else {
@@ -135,7 +136,7 @@ makeTrainingOmnibus <- function(){
   path <- "data/selected"
   datalist <- list()
   i <- 1
-  for (expVersion in c("longAbruptExp", "stepwiseExp")){
+  for (expVersion in c("longAbruptExp", "stepwiseExp", "gradualExp")){
     for (ppt in list.files(path = paste(path, expVersion, sep = '/'))){
       
       trial_counter <- 1
@@ -155,6 +156,8 @@ makeTrainingOmnibus <- function(){
         df <- fread(filePath, stringsAsFactors = FALSE)
         
         maxVrows <- filter(df, selected == 1, maxV == 1)
+        
+        maxVrows$stratUse <- 0 #this is just filler
         
         #add new columns
         maxVrows$ppt <- paste(ppt, expVersion, sep = '_')
@@ -191,11 +194,25 @@ makeTrainingOmnibus <- function(){
 
 ## ----
 ## Run the functions
-# makeNoCurOmnibus()
-makeTrainingOmnibus()
+library(future)
+plan(multiprocess)
+
+#NOTE: %<-% is a "future assignment"
+# tempjob1 %<-% makeNoCurOmnibus()
+tempjob2 %<-% makeTrainingOmnibus()
+
+temp.list <- lapply(ls(pattern = "temp"), get)
 
 
-#testing
+
+
+
+
+
+
+
+
+# testing
 test <- data.frame("x" = c(1, 2, 3, 4, 5, 6, 7, 8))
 
 test$y <- c(1, 2, 3, 4, 5, 6, 7, 8)
