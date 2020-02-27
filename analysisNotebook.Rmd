@@ -161,33 +161,6 @@ nocur_summary
 
 ## Visualizing the data
 
-### Abrupt experiment
-
-```{r}
-p <- 
-  nocur_summary %>%
-  filter(exp == 'abruptExp') %>%
-  group_by(stratuse) %>%
-  summarise(mean_dev = mean(mean_devs), 
-            ci = vector_confint(mean_devs)) %>%
-  ggplot(aes(stratuse, mean_dev, colour = "mean + ci")) +
-  geom_beeswarm(data = filter(nocur_summary, exp == 'abruptExp'), 
-                aes(y = mean_devs, colour = "individual ppts"),
-                size = 3, alpha = 0.2) +
-  geom_linerange(aes(ymin = mean_dev - ci, ymax = mean_dev + ci),
-                 lwd = 3, alpha = 0.4) +
-  geom_point(size = 3, alpha = 1) +
-  scale_y_continuous(limits = c(-5, 60), 
-                     breaks = c(0, 15, 30, 45, 60), 
-                     name = "hand deviation (°)") +
-  theme_minimal() +
-  theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
-  scale_color_manual(values=c("#000000", "#FFA47E")) +
-  NULL
-
-# p
-```
-
 ### Stepwise experiment
 
 
@@ -245,34 +218,34 @@ p
 ### Comparing the 3 groups 
 After adapting to the full 60-degree rotations:
 ```{r}
-p <- 
-  nocur_summary %>%
-  filter(rotation_angle == -60, exp != "abruptExp") %>%
-  group_by(exp, stratuse) %>%
-  summarise(mean_dev = mean(mean_devs), 
-            ci = vector_confint(mean_devs)) %>%
-  ggplot(aes(stratuse, mean_dev, colour = exp)) +
-  geom_beeswarm(data = filter(nocur_summary, rotation_angle == -60, exp != "abruptExp"), 
-                aes(y = mean_devs, colour = exp),
-                size = 3, alpha = 0.6, groupOnX = TRUE, dodge.width = .7) +
-  geom_linerange(aes(ymin = mean_dev - ci, ymax = mean_dev + ci),
-                 lwd = 20, alpha = 0.4, position = position_dodge(width = .2)) +
-  geom_point(size = 14, alpha = 1, position = position_dodge(width = .2)) +
-  scale_x_discrete(name = "strategy use", labels = c('without strategy', 'with strategy')) +
-  scale_y_continuous(limits = c(0, 60), breaks = c(0, 15, 30, 45, 60), name = "hand deviation (°)") +
-  theme_minimal() +
-  theme(text = element_text(size=40), 
-        axis.text = element_text(size=40), 
-        legend.text = element_text(size=48), 
-        panel.grid.major.y = element_line(colour = "#ABABAB")) + 
-  scale_colour_manual(values=c("#e51636", "#0500a0", "#0500a0"), 
-                       name= NULL,
-                       breaks=c("stepwiseExp", "abruptExp", "longAbruptExp"),
-                       labels=c("stepwise experiment", "abrupt experiment", "abrupt experiment")) +
-  theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
-  NULL
-
-p
+# p <- 
+#   nocur_summary %>%
+#   filter(rotation_angle == -60, exp != "abruptExp") %>%
+#   group_by(exp, stratuse) %>%
+#   summarise(mean_dev = mean(mean_devs), 
+#             ci = vector_confint(mean_devs)) %>%
+#   ggplot(aes(stratuse, mean_dev, colour = exp)) +
+#   geom_beeswarm(data = filter(nocur_summary, rotation_angle == -60, exp != "abruptExp"), 
+#                 aes(y = mean_devs, colour = exp),
+#                 size = 3, alpha = 0.6, groupOnX = TRUE, dodge.width = .7) +
+#   geom_linerange(aes(ymin = mean_dev - ci, ymax = mean_dev + ci),
+#                  lwd = 20, alpha = 0.4, position = position_dodge(width = .2)) +
+#   geom_point(size = 14, alpha = 1, position = position_dodge(width = .2)) +
+#   scale_x_discrete(name = "strategy use", labels = c('without strategy', 'with strategy')) +
+#   scale_y_continuous(limits = c(0, 60), breaks = c(0, 15, 30, 45, 60), name = "hand deviation (°)") +
+#   theme_minimal() +
+#   theme(text = element_text(size=40), 
+#         axis.text = element_text(size=40), 
+#         legend.text = element_text(size=48), 
+#         panel.grid.major.y = element_line(colour = "#ABABAB")) + 
+#   scale_colour_manual(values=c("#e51636", "#0500a0", "#0500a0"), 
+#                        name= NULL,
+#                        breaks=c("stepwiseExp", "abruptExp", "longAbruptExp"),
+#                        labels=c("stepwise experiment", "abrupt experiment", "abrupt experiment")) +
+#   theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+#   NULL
+# 
+# p
 
 ```
 
@@ -280,7 +253,7 @@ p
 
 
 ---
-# Plots for poster
+# Plots
 ```{r}
 #first add block number
 block_num <- function(df){
@@ -290,6 +263,16 @@ block_num <- function(df){
     else if (df[1] < 34)
       return(2)
     else if (df[1] < 46)
+      return(3)
+    else
+      return(4)
+  }
+  else if(df[2] == "reintroExp") {
+    if (df[1] < 25)
+      return(1)
+    else if (df[1] < 38)
+      return(2)
+    else if (df[1] < 51)
       return(3)
     else
       return(4)
@@ -337,50 +320,9 @@ nocur_summary_blocks$dummy <- apply(nocur_summary_blocks[ , c("exp", "block_num"
 nocur_summary_blocks
 ```
 
-
+## No-cursor plots
 
 ```{r}
-data <- 
-  nocur_summary_blocks %>%
-  filter(rotation_angle == -60) %>%
-  group_by(exp, block_num, stratuse) %>%
-  summarise(mean_dev = mean(mean_devs), 
-            ci = vector_confint(mean_devs)) %>%
-  filter(block_num == 1 | block_num == 4)
-
-data$dummy <- factor(c(1,1,2,2,3,3))
-nocur_summary_blocks$dummy <- factor(nocur_summary_blocks$dummy)
-  
-p <- data %>%
-  ggplot(aes(x = stratuse, y = mean_dev, colour = dummy)) +
-  geom_beeswarm(data = nocur_summary_blocks, 
-                aes(y = mean_devs, colour = dummy),
-                size = 3, alpha = 0.6, groupOnX = TRUE, dodge.width = .4) +
-  geom_linerange(aes(ymin = mean_dev - ci, ymax = mean_dev + ci),
-                 lwd = 20, alpha = 0.4, position = position_dodge(width = .4)) +
-  geom_point(size = 14, alpha = .6, position = position_dodge(width = .4)) +
-  scale_x_discrete(name = "strategy use", labels = c('without strategy', 'with strategy')) +
-  scale_y_continuous(limits = c(0, 50), breaks = c(0, 15, 30, 45, 60), name = "hand deviation (°)") +
-  theme_minimal() +
-  theme(text = element_text(size=40), 
-        axis.text = element_text(size=40), 
-        legend.text = element_text(size=48), 
-        panel.grid.major.y = element_line(colour = "#CCCCCC")) + 
-  scale_colour_manual(values=c("#6baed6", "#084594", "#d40000"), 
-                       name= NULL,
-                       breaks=c("1", "2", "3"),
-                       labels=c( "abrupt experiment [block 1]",
-                                 "abrupt experiment [block 4]",
-                                 "stepwise experiment [block 4]")) +
-  NULL
-
-p
-
-
-# ggsave(p, height = 14, width = 14, device = "svg", filename = "data/noCur_plot_test.svg")
-
-# next plot
-
 rot_nocur$block_num <- apply(rot_nocur[ , c("task_num", "exp")], 1, block_num)
 
 nocur_summary_blocks <- rot_nocur %>%
@@ -424,16 +366,19 @@ p <- ggplot(data = data[data$stratuse == 0, ], aes(block_num, mean_dev, colour =
                      name = "hand deviation (°)") +
   scale_x_discrete(name = "block") +
   theme_minimal() +
-  theme(text = element_text(size=40), 
-        axis.text = element_text(size=40), 
-        legend.text = element_text(size=48), 
-        panel.grid.major.y = element_line(colour = "#CCCCCC")) +
-  scale_colour_manual(values=c("#084594", "#d40000", "#179603"), 
-                       breaks=c("stepwiseExp", "longAbruptExp", "gradualExp"),
-                       labels=c( "stepwise", "abrupt", "gradual"))
+  theme(legend.title = element_blank(),
+    panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+  scale_colour_manual(values=c("#179603", "#084594", "#d40000", "#ffa114"), 
+                       breaks=c("stepwiseExp", "longAbruptExp", "gradualExp", "reintroExp"),
+                       labels=c( "stepwise", "abrupt", "gradual", "reintro")) +
+  NULL
   
 p
 
+p <- p +
+    theme(text = element_text(size=40), 
+        axis.text = element_text(size=40), 
+        legend.text = element_text(size=48))
 
 ggsave(p, height = 14, width = 24, device = "svg", filename = "data/noCur_plot_block.svg")
 
@@ -462,25 +407,25 @@ p <- ggplot(data = data[data$stratuse == 1, ], aes(block_num, mean_dev, colour =
                      name = "hand deviation (°)") +
   scale_x_discrete(name = "block") +
   theme_minimal() +
-  theme(text = element_text(size=40), 
-        axis.text = element_text(size=40), 
-        legend.text = element_text(size=48), 
+  theme(legend.title = element_blank(),
         panel.grid.major.y = element_line(colour = "#CCCCCC")) +
-  scale_colour_manual(values=c("#084594", "#d40000", "#179603"), 
-                       breaks=c("stepwiseExp", "longAbruptExp", "gradualExp"),
-                       labels=c( "stepwise", "abrupt", "gradual"))
+  scale_colour_manual(values=c("#179603", "#084594", "#d40000", "#ffa114"), 
+                       breaks=c("stepwiseExp", "longAbruptExp", "gradualExp", "reintroExp"),
+                       labels=c( "stepwise", "abrupt", "gradual", "reintro")) +
+  # labs(fill = "experiment") +
+  NULL
   
 p
 
+p <- p +
+    theme(text = element_text(size=40), 
+        axis.text = element_text(size=40), 
+        legend.text = element_text(size=48))
 
 ggsave(p, height = 14, width = 24, device = "svg", filename = "data/withStrat_noCur_plot_block.svg")
-
-
-
- 
 ```
 
-# Make plots for Learning Curves
+## Plots for Learning Curves
 
 ```{r}
 omnibus_training <- read_delim("data/omnibus/omnibus_training.csv", 
@@ -541,7 +486,7 @@ training_summary$trial_num_cont <- training_summary$trial_num_cont - 66
 
 ```
 
-# plots
+Below, we plot the learning curves (all reach-to-target tasks with a visible cursor)
 ```{r}
 p <- training_summary %>%
   ggplot(aes(trial_num_cont, mean_devs, colour = exp)) +
@@ -551,25 +496,49 @@ p <- training_summary %>%
                      name = "hand deviation (°)") +
   scale_x_continuous(name = "trial") +
   theme_minimal() +
-  theme(text = element_text(size=40), 
-        axis.text = element_text(size=40), 
-        legend.text = element_text(size=48), 
+  theme(legend.position = "none",
         panel.grid.major.y = element_line(colour = "#ABABAB")) + 
-  scale_fill_manual(values=c( "#084594", "#d40000", "#179603"), 
-                       breaks=c("longAbruptExp", "stepwiseExP", "gradualExp"),
-                      labels=c( "abrupt", "stepwise", "gradual")) +
-  scale_colour_manual(values=c( "#084594", "#d40000", "#179603"), 
-                       breaks=c("longAbruptExp", "stepwiseExP", "gradualExp"),
-                       labels=c( "abrupt", "stepwise", "gradual")) +
+  scale_fill_manual(values=c("#179603", "#084594", "#d40000", "#ffa114"), 
+                       breaks=c("longAbruptExp", "stepwiseExP", "gradualExp", "reintroExp"),
+                      labels=c( "abrupt", "stepwise", "gradual", "reintro")) +
+  scale_colour_manual(values=c("#179603", "#084594", "#d40000", "#ffa114"), 
+                       breaks=c("longAbruptExp", "stepwiseExP", "gradualExp", "reintroExp"),
+                       labels=c( "abrupt", "stepwise", "gradual", "reintro")) +
   theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
   NULL
 
 p
 
+p <- p +
+    theme(text = element_text(size=40), 
+        axis.text = element_text(size=40), 
+        legend.text = element_text(size=48))
+
 ggsave(p, height = 13, width = 20, device = "svg", filename = "data/LC_plot.svg")
 ```
 
-Intro plot
+## By-trial data
+
+We are going to plot the by-trial data to see any effects of time, even on the no-cursor data.
+
+_THIS NEEDS SOME WORK_
+```{r}
+nocur_trial<- omnibus_nocur %>%
+  group_by(exp, task_num, stratuse, trial_num) %>%
+  summarise(mean_devs = mean(angular_dev, na.rm = TRUE), 
+            sd = sd(angular_dev, na.rm = TRUE), 
+            ci = vector_confint(angular_dev,),
+            n = n())
+
+
+
+```
+
+
+
+
+# Intro plot
+
 ```{r}
 rep <- 1:4
 bond_data <- data.frame("exp" = c(rep_along(rep, "bond")), 
@@ -601,10 +570,7 @@ p <- ggplot(data = intro_data,
                     ymax = learning + error), width = 0.2,
                 position = position_dodge(1.02)) +
   theme_minimal() +
-  theme(text = element_text(size=40), 
-        axis.text = element_text(size=40), 
-        legend.text = element_text(size=48), 
-        panel.grid.major.y = element_line(colour = "#CCCCCC"),
+  theme(panel.grid.major.y = element_line(colour = "#CCCCCC"),
         legend.position = "none",
         panel.spacing = unit(9, "lines")) + 
   # scale_fill_manual(values=c( "#084594", "#d40000"), 
@@ -618,6 +584,16 @@ p <- ggplot(data = intro_data,
               
 p
 
+p <- p +
+    theme(text = element_text(size=40), 
+        axis.text = element_text(size=40), 
+        legend.text = element_text(size=48))
+  
+
 ggsave(p, height = 10, width = 27, device = "svg", filename = "data/intro.svg")
 ```
 
+End
+```{r}
+# end
+```

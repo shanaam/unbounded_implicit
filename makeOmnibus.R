@@ -82,13 +82,13 @@ makeNoCurOmnibus <- function(){
           maxVrows$rotation_angle[maxVrows$task_num >= 14] <- -60
         } 
         
-        if ((expVersion %in% c("longAbruptExp", "gradualExp")) & grepl("rotated", filePath)) {
+        if ((expVersion %in% c("longAbruptExp", "gradualExp", "reintroExp")) & grepl("rotated", filePath)) {
           maxVrows$rotation_angle <- -60
         }
         
         
         # add in whether the trial was instructed or not
-        if (typeof(maxVrows$trial_type) == "character" | expVersion %in% c("longAbruptExp", "gradualExp")) {
+        if (typeof(maxVrows$trial_type) == "character" | expVersion %in% c("longAbruptExp", "gradualExp", "reintroExp")) {
           maxVrows$stratuse <- lapply(maxVrows$task_name, applyStratUse)
         }
         else {
@@ -136,7 +136,7 @@ makeTrainingOmnibus <- function(){
   path <- "data/selected"
   datalist <- list()
   i <- 1
-  for (expVersion in c("longAbruptExp", "stepwiseExp", "gradualExp")){
+  for (expVersion in c("longAbruptExp", "stepwiseExp", "gradualExp", "reintroExp")){
     for (ppt in list.files(path = paste(path, expVersion, sep = '/'))){
       
       trial_counter <- 1
@@ -198,7 +198,7 @@ library(future)
 plan(multiprocess)
 
 #NOTE: %<-% is a "future assignment"
-# tempjob1 %<-% makeNoCurOmnibus()
+tempjob1 %<-% makeNoCurOmnibus()
 tempjob2 %<-% makeTrainingOmnibus()
 
 temp.list <- lapply(ls(pattern = "temp"), get)
