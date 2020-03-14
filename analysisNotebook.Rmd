@@ -347,7 +347,7 @@ p <- ggplot(data = data[data$stratuse == 0, ], aes(block_num, mean_dev, colour =
   geom_beeswarm(data = nocur_summary_blocks[nocur_summary_blocks$stratuse == 0, ], 
                 aes(y = mean_devs), size = 3, alpha = 0.6, 
                 dodge.width = 0.4) +
-  geom_point(size = 14, alpha = 1, 
+  geom_point(size = 14, alpha = 0.6, 
              position = position_dodge(width = .4)) + 
   geom_linerange(aes(ymin = mean_dev - ci, ymax = mean_dev + ci), 
                   lwd = 20, alpha = 0.4, 
@@ -388,7 +388,7 @@ p <- ggplot(data = data[data$stratuse == 1, ], aes(block_num, mean_dev, colour =
   geom_beeswarm(data = nocur_summary_blocks[nocur_summary_blocks$stratuse == 1, ], 
                 aes(y = mean_devs), size = 3, alpha = 0.6, 
                 dodge.width = 0.4) +
-  geom_point(size = 14, alpha = 1, 
+  geom_point(size = 14, alpha = 0.6, 
              position = position_dodge(width = .4)) + 
   geom_linerange(aes(ymin = mean_dev - ci, ymax = mean_dev + ci), 
                   lwd = 20, alpha = 0.4, 

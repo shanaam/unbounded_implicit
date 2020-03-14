@@ -23,6 +23,7 @@
 ## Load packages
 library(data.table)
 library(tidyverse)
+
 ## ----
 ## Functions
 # function for making the omnubus thing
@@ -212,16 +213,16 @@ temp.list <- lapply(ls(pattern = "temp"), get)
 
 
 
-# testing
-test <- data.frame("x" = c(1, 2, 3, 4, 5, 6, 7, 8))
-
-test$y <- c(1, 2, 3, 4, 5, 6, 7, 8)
-test$x <- factor(test$x)
-
-p <- ggplot (data = test, aes(x, y, colour = x)) +
-  geom_point() +
-  scale_colour_brewer()
-
-p
-
-ggsave(p, height = 13, width = 20, device = "svg", filename = "data/test.svg")
+# # testing
+# test <- data.frame("x" = c(1, 2, 3, 4, 5, 6, 7, 8))
+# 
+# test$y <- c(1, 2, 3, 4, 5, 6, 7, 8)
+# test$x <- factor(test$x)
+# 
+# p <- ggplot (data = test, aes(x, y, colour = x)) +
+#   geom_point() +
+#   scale_colour_brewer()
+# 
+# p
+# 
+# ggsave(p, height = 13, width = 20, device = "svg", filename = "data/test.svg")
