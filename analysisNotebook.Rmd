@@ -13,8 +13,10 @@ output:
 
 ```{r setup, include=FALSE, warning=FALSE}
 source("analysisFunctions.R")
+library(data.table)
 library(tidyverse)
 library(ggbeeswarm)
+
 ```
 
 # Some backround
@@ -595,5 +597,80 @@ ggsave(p, height = 10, width = 27, device = "svg", filename = "data/intro.svg")
 
 End
 ```{r}
+
+# pivot for excel stuff (for undergrad projects)
+rot_data_wide_reaches <- rot_training %>%
+  filter(exp == "longAbruptExp" | exp == "gradualExp") %>%
+  select(ppt, exp, trial_num_cont, angular_dev) %>%
+  pivot_wider(names_from = ppt, values_from = angular_dev)
+
+# SAVE HERE
+fwrite(rot_data_wide_reaches, file = paste("data/wide_format", "reaches.csv", sep = '/'))
+
+# nocursors
+rot_data_wide_nocursor <- nocur_summary_blocks %>%
+  filter(exp == "longAbruptExp" | exp == "gradualExp") %>%
+  select(ppt, exp, block_num, stratuse, mean_devs) %>%
+  pivot_wider(names_from = ppt, values_from = mean_devs)
+
+# SAVE HERE
+fwrite(rot_data_wide_nocursor, file = paste("data/wide_format", "nocursors.csv", sep = '/'))
+
+
+## Make JASP-able
+set_dummy <- function(exp, trial){
+  if(exp == "longAbruptExp") {
+    if(trial <= 69)
+      return("B_1")
+    else if(trial <= 72)
+      return("B_2")
+    else if(trial >= 322)
+      return("B_Last")
+    else
+      return("X")
+  }
+  else {
+    if(trial <= 70)
+      return("B_1")
+    else if(trial <= 73)
+      return("B_2")
+    else if(trial >= 322)
+      return("B_Last")
+    else
+      return("X")
+  }
+}
+
+JASP_seb_train <- rot_training %>%
+  filter(exp == "longAbruptExp" | exp == "gradualExp") %>%
+  select(ppt, exp, trial_num_cont, task_num, angular_dev) %>%
+  rowwise() %>%
+  mutate(dummy = set_dummy(exp, trial_num_cont)) %>%
+  filter(dummy != "X") %>%
+  group_by(exp, ppt, dummy) %>%
+  summarise(mean_dev = mean(angular_dev, na.rm = TRUE), 
+            sd = sd(angular_dev, na.rm = TRUE), 
+            ci = vector_confint(angular_dev), 
+            n = n(), 
+            median_dev = median(angular_dev, na.rm = TRUE)) %>%
+  select(exp, ppt, dummy, mean_dev) %>%
+  pivot_wider(names_from = dummy, values_from = mean_dev)
+
+fwrite(JASP_seb_train, file = paste("data/wide_format", "JASP_seb_LC.csv", sep = '/'))
+
+
+JASP_seb_NC <- nocur_summary_blocks %>%
+  filter(exp == "longAbruptExp" | exp == "gradualExp") %>%
+  ungroup() %>%
+  select(ppt, exp, block_num, stratuse, mean_devs)
+
+JASP_seb_NC$stratuse <- recode(JASP_seb_NC$stratuse, "0" = "E", "1" = "I")
+
+JASP_seb_NC <- JASP_seb_NC %>%
+  pivot_wider(names_from = c(block_num ,stratuse), values_from = mean_devs)
+
+fwrite(JASP_seb_NC, file = paste("data/wide_format", "JASP_seb_NC.csv", sep = '/'))
+
+
 # end
 ```

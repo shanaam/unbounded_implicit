@@ -17,6 +17,9 @@
 ##
 ## --------------------------------
 
+library(data.table)
+library(tidyverse)
+
 # input = a vector
 # works well with group_by %>% summarise()
 vector_confint <- function(vector, interval = 0.95) {
@@ -35,3 +38,10 @@ vector_confint <- function(vector, interval = 0.95) {
 
 # get the magnitude (euclidian normal) of a vector (this is faster than R's built in norm)
 norm_vec <- function(vector){sqrt(crossprod(vector))}
+
+# load data using fread
+loadData <- function(path){
+  data_df <- fread(path, stringsAsFactors = TRUE)
+  
+  return(data_df)
+}
