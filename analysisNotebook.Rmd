@@ -345,8 +345,10 @@ nocur_summary_blocks$block_num <- factor(nocur_summary_blocks$block_num)
 colourtoUse <- c("#084594", "#2171b5", "#4292c6", "#6baed6",
                  "#940f08", "#b52821", "#c64842", "#D6706b")
 
-p <- ggplot(data = data[data$stratuse == 0, ], aes(block_num, mean_dev, colour = exp)) +
-  geom_beeswarm(data = nocur_summary_blocks[nocur_summary_blocks$stratuse == 0, ], 
+p <- data[data$stratuse == 0, ] %>%
+  filter(exp != "reintroExp") %>%
+  ggplot(aes(block_num, mean_dev, colour = exp)) +
+  geom_beeswarm(data = filter(nocur_summary_blocks, stratuse == 0, exp !="reintroExp"), 
                 aes(y = mean_devs), size = 3, alpha = 0.6, 
                 dodge.width = 0.4) +
   geom_point(size = 14, alpha = 0.6, 
@@ -368,11 +370,11 @@ p <- ggplot(data = data[data$stratuse == 0, ], aes(block_num, mean_dev, colour =
                      name = "hand deviation (°)") +
   scale_x_discrete(name = "block") +
   theme_minimal() +
-  theme(legend.title = element_blank(),
+  theme(legend.position = "none",
     panel.grid.major.y = element_line(colour = "#CCCCCC")) +
-  scale_colour_manual(values=c("#179603", "#084594", "#d40000", "#ffa114"), 
-                       breaks=c("stepwiseExp", "longAbruptExp", "gradualExp", "reintroExp"),
-                       labels=c( "stepwise", "abrupt", "gradual", "reintro")) +
+  scale_colour_manual(values=c( "#d40000", "#084594", "#8365b5"), 
+                       breaks=c("stepwiseExp", "longAbruptExp", "gradualExp"),
+                       labels=c( "stepwise", "abrupt", "gradual")) +
   NULL
   
 p
@@ -382,12 +384,14 @@ p <- p +
         axis.text = element_text(size=40), 
         legend.text = element_text(size=48))
 
-ggsave(p, height = 14, width = 24, device = "svg", filename = "data/noCur_plot_block.svg")
+ggsave(p, height = 14, width = 20, device = "svg", filename = "data/noCur_plot_block.svg")
 
 
 
-p <- ggplot(data = data[data$stratuse == 1, ], aes(block_num, mean_dev, colour = exp)) +
-  geom_beeswarm(data = nocur_summary_blocks[nocur_summary_blocks$stratuse == 1, ], 
+p <- data[data$stratuse == 1, ] %>%
+  filter(exp != "reintroExp") %>%
+  ggplot(aes(block_num, mean_dev, colour = exp)) +
+  geom_beeswarm(data = filter(nocur_summary_blocks, stratuse == 1, exp !="reintroExp"), 
                 aes(y = mean_devs), size = 3, alpha = 0.6, 
                 dodge.width = 0.4) +
   geom_point(size = 14, alpha = 0.6, 
@@ -409,12 +413,11 @@ p <- ggplot(data = data[data$stratuse == 1, ], aes(block_num, mean_dev, colour =
                      name = "hand deviation (°)") +
   scale_x_discrete(name = "block") +
   theme_minimal() +
-  theme(legend.title = element_blank(),
-        panel.grid.major.y = element_line(colour = "#CCCCCC")) +
-  scale_colour_manual(values=c("#179603", "#084594", "#d40000", "#ffa114"), 
-                       breaks=c("stepwiseExp", "longAbruptExp", "gradualExp", "reintroExp"),
-                       labels=c( "stepwise", "abrupt", "gradual", "reintro")) +
-  # labs(fill = "experiment") +
+  theme(legend.position = "none",
+    panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+  scale_colour_manual(values=c( "#d40000", "#084594", "#8365b5"), 
+                       breaks=c("stepwiseExp", "longAbruptExp", "gradualExp"),
+                       labels=c( "stepwise", "abrupt", "gradual")) +
   NULL
   
 p
@@ -424,7 +427,7 @@ p <- p +
         axis.text = element_text(size=40), 
         legend.text = element_text(size=48))
 
-ggsave(p, height = 14, width = 24, device = "svg", filename = "data/withStrat_noCur_plot_block.svg")
+ggsave(p, height = 14, width = 20, device = "svg", filename = "data/withStrat_noCur_plot_block.svg")
 ```
 
 ## Plots for Learning Curves
@@ -491,6 +494,7 @@ training_summary$trial_num_cont <- training_summary$trial_num_cont - 66
 Below, we plot the learning curves (all reach-to-target tasks with a visible cursor)
 ```{r}
 p <- training_summary %>%
+  filter(exp != "reintroExp") %>%
   ggplot(aes(trial_num_cont, mean_devs, colour = exp)) +
   geom_smooth(aes(ymin = mean_devs - ci, ymax = mean_devs + ci, fill = exp),
               stat = "identity", size = 3) +
@@ -500,12 +504,12 @@ p <- training_summary %>%
   theme_minimal() +
   theme(legend.position = "none",
         panel.grid.major.y = element_line(colour = "#ABABAB")) + 
-  scale_fill_manual(values=c("#179603", "#084594", "#d40000", "#ffa114"), 
-                       breaks=c("longAbruptExp", "stepwiseExP", "gradualExp", "reintroExp"),
-                      labels=c( "abrupt", "stepwise", "gradual", "reintro")) +
-  scale_colour_manual(values=c("#179603", "#084594", "#d40000", "#ffa114"), 
-                       breaks=c("longAbruptExp", "stepwiseExP", "gradualExp", "reintroExp"),
-                       labels=c( "abrupt", "stepwise", "gradual", "reintro")) +
+  scale_fill_manual(values=c("#8365b5", "#084594", "#d40000", "#ffa114"), 
+                       breaks=c("longAbruptExp", "stepwiseExP", "gradualExp"),
+                      labels=c( "abrupt", "stepwise", "gradual")) +
+  scale_colour_manual(values=c("#8365b5", "#084594", "#d40000", "#ffa114"), 
+                       breaks=c("longAbruptExp", "stepwiseExP", "gradualExp"),
+                       labels=c( "abrupt", "stepwise", "gradual")) +
   theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
   NULL
 
@@ -518,6 +522,50 @@ p <- p +
 
 ggsave(p, height = 13, width = 20, device = "svg", filename = "data/LC_plot.svg")
 ```
+
+
+Below, we plot the perturbation schedule
+
+```{r}
+# load in the csv
+pert_sched <- loadData("misc/reach_rotations_csv_forPlotting.csv")
+
+pert_sched <- pert_sched %>%
+  pivot_longer(cols = c(abrupt, gradual, stepwise, reintro))
+
+
+# plot the perturbation schedule (line plot)
+p <- pert_sched %>%
+  filter(name != "reintro") %>%
+  ggplot(aes(x = trial)) +
+  geom_smooth(aes(y = value, colour = name),
+              stat = "identity", size = 3, alpha = 0.5) +
+  scale_y_continuous(limits = c(0, 70), breaks = c(0, 15, 30, 45, 60), 
+                     name = "visuomotor rotation (°)") +
+  scale_x_continuous(name = "trial",
+                     breaks = c(0, 66, 132, 198, 264, 330)) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.major.y = element_line(colour = "#ABABAB")) +
+  scale_colour_manual(values=c( "#d40000", "#084594", "#8365b5"), 
+                       breaks=c("stepwise", "abrupt", "gradual"),
+                       labels=c( "stepwise", "abrupt", "gradual"))
+
+p
+
+p <- p +
+    theme(text = element_text(size=40), 
+        axis.text = element_text(size=40), 
+        legend.text = element_text(size=48))
+
+ggsave(p, height = 13, width = 20, device = "svg", filename = "data/pert_plot.svg")
+
+```
+
+
+
+
+
 
 ## By-trial data
 
@@ -535,9 +583,6 @@ nocur_trial<- omnibus_nocur %>%
 
 
 ```
-
-
-
 
 # Intro plot
 
