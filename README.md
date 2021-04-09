@@ -1,5 +1,5 @@
-# RigidImplicit
-Data and code from the Rigid Implicit learning experiment.
+# Unbounded Implicit Learning
+Data and code from the various learning experiments exploring the limits of implicit adaptation
 
 ## INCLUDES:
 
