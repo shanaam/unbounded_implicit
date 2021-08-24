@@ -33,11 +33,12 @@ apply_find_angle <- function(mouse_move_xy){
   mouse_move <- mouse_move %>% 
     add_column(mouse_x = mousex, mouse_y = mousey)
   
+  homeposy <- -0.5
   for(i in mouse_move$datapoint){
-    distance <- norm_vec(c(mouse_move$mouse_x[i], mouse_move$mouse_y[i]))
+    distance <- norm_vec(c(mouse_move$mouse_x[i], mouse_move$mouse_y[i] - homeposy)) #this bit accounts for home position
     if(distance > 0.3){
       x <- mouse_move$mouse_x[i]
-      y <- mouse_move$mouse_y[i]
+      y <- mouse_move$mouse_y[i] - homeposy
       
       # do a rotation matrix to move the reach to be normalized to a target at 100deg *************
       # theta_deg <- 100 - as.double( mouse_move_xy[3] )
@@ -62,7 +63,7 @@ apply_find_angle <- function(mouse_move_xy){
 # actually save a csv
 makeOnlineOmnibus <- function(){
   
-  path <- "data/raw/online"
+  path <- "data/raw/online_direct_repetition"
   datalist <- list()
   i <- 1
   
@@ -87,10 +88,10 @@ makeOnlineOmnibus <- function(){
     
     ############OUTLIER REMOVAL##############################
     learningscore <- df %>%
-      filter(trial_num < 472 & trial_num > 455) %>%
+      filter(trial_num < 394 & trial_num > 382) %>%
       select(angular_dev) %>%
       summarise(mean = mean(angular_dev, na.rm = TRUE))
-    
+
     df$learner <- FALSE
     if(learningscore$mean < -20)  ##make sure people learn at least 1/3 of rotation
       df$learner <- TRUE
@@ -185,7 +186,7 @@ ggsave(p, height = 13, width = 20, device = "svg", filename = "data/online_plot.
 # plot nocursors
 
 nocursors_60 <- omnibus_online %>%
-  filter(cursor_vis == 0, trial_num > 448)
+  filter(cursor_vis == 0, trial_num > 390)
 
 nocur_means <- nocursors_60 %>%
   group_by(condition, participant) %>%
@@ -222,3 +223,33 @@ p <- p +
         legend.text = element_text(size=48))
 
 ggsave(p, height = 13, width = 10, device = "svg", filename = "data/online_nc_plot.svg")
+
+
+
+### temp (over trials)
+nocursors_60 <- omnibus_online %>%
+  filter(cursor_vis == 0, trial_num > 100)
+
+nocur_means <- nocursors_60 %>%
+  group_by(condition, trial_num) %>%
+  summarise(mean_devs = mean(angular_dev, na.rm = TRUE), 
+            sd = sd(angular_dev, na.rm = TRUE), 
+            ci = vector_confint(angular_dev),
+            n = n())
+
+p <- ggplot(nocur_means, mapping = aes(trial_num, mean_devs, colour = condition)) +
+  geom_point(stat = "identity", size = 3) +
+  scale_y_continuous(name = "hand deviation (°)") +
+  scale_x_continuous(name = "trial") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+  NULL
+p
+
+p <- p +
+  theme(text = element_text(size=40), 
+        axis.text = element_text(size=40), 
+        legend.text = element_text(size=48))
+
+ggsave(p, height = 13, width = 10, device = "svg", filename = "data/online_nc_plot.svg")
+

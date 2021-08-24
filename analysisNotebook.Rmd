@@ -16,7 +16,8 @@ source("analysisFunctions.R")
 library(data.table)
 library(tidyverse)
 library(ggbeeswarm)
-
+library(ez) #for ANOVAs
+library(effectsize) # for eta-squared
 ```
 
 # Some backround
@@ -76,12 +77,12 @@ omnibus_nocur <- read_delim("data/omnibus/omnibus_nocur.csv",
                                              trial_num = col_double(),
                                              rotation_angle = col_factor(),
                                              targetangle_deg = col_factor(),
-                                             ppt = col_character(),
+                                             ppt = col_factor(),
                                              stratuse = col_factor(),
-                                             exp = col_character()))
+                                             exp = col_factor()))
 
 omnibus_nocur <- omnibus_nocur %>% 
-  filter(exp != "abruptExp")
+  filter(exp != "abruptExp", exp != "reintroExp")
 
 head(omnibus_nocur)
 
@@ -144,31 +145,370 @@ head(rot_nocur)
 
 We now have an angular deviation column that is baseline corrected. We will use the _rot_nocur_ dataframe from now on.
 
+We need to label the block number for each trial.
+```{r}
+#first add block number
+block_num <- function(df){
+  if(df[2] == "gradualExp"){
+    if (df[1] < 20)
+      return(1)
+    else if (df[1] < 34)
+      return(2)
+    else if (df[1] < 46)
+      return(3)
+    else
+      return(4)
+  }
+  else if(df[2] == "reintroExp") {
+    if (df[1] < 25)
+      return(1)
+    else if (df[1] < 38)
+      return(2)
+    else if (df[1] < 51)
+      return(3)
+    else
+      return(4)
+  }
+  else {
+    if (df[1] < 25)
+      return(1)
+    else if (df[1] < 37)
+      return(2)
+    else if (df[1] < 49)
+      return(3)
+    else
+      return(4)
+  }
+}
+
+rot_nocur$block_num <- apply(rot_nocur[ , c("task_num", "exp")], 1, block_num)
+rot_nocur$block_num <- factor(rot_nocur$block_num, levels=c("1", "2", "3", "4"))
+rot_nocur$rotation_angle <- factor(rot_nocur$rotation_angle, levels=c("-15", "-30", "-45", "-60"))
+  
+```
+
+
 __We might want to use group by to get participant means!__
 
 Now we will get a mean for each participant
 
 ```{r}
 nocur_summary <- rot_nocur %>%
-  group_by(exp, ppt, rotation_angle, stratuse) %>%
-  summarise(mean_devs = mean(angular_dev), sd = sd(angular_dev), ci = vector_confint(angular_dev))
+  group_by(exp, ppt, rotation_angle, block_num, stratuse) %>%
+  summarise(mean_devs = mean(angular_dev), 
+            sd = sd(angular_dev), 
+            ci = vector_confint(angular_dev),
+            n = n())
 
-nocur_summary$rotation_angle <- factor(nocur_summary$rotation_angle, levels=c("-15", "-30", "-45", "-60"))
+head(nocur_summary)
+```
+
+## Statistics
+
+### ANOVA
+We do a 3x4x2 mixed ANOVA (experiment x block x strategy use)
+```{r}
+#performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
+no_cur_ANOVA <- nocur_summary %>% 
+  filter(stratuse == '0') %>%
+  ezANOVA(wid = ppt,
+        dv = mean_devs, 
+        within = .(block_num),
+        between = exp,
+        detailed = TRUE)
+
+#show and ANOVA + assumptions
+print(no_cur_ANOVA)
+```
+
+### Implicit aftereffects
+To test whether the method of perturbation onset effected implicit learning, we compared the aftereffects of learning in No-Strategy trials.
+
+```{r}
+nocur_select_blocks <- nocur_summary %>% 
+  filter(stratuse == '0') %>% #only the implicit aftereffects
+  filter(block_num == '4') # only comparing block 4 data
+  # filter((exp == 'stepwiseExp' & block_num == '4') | #only the 5 blocks (1 and 4)
+  #        (exp == 'longAbruptExp' & block_num == '1') |
+  #        (exp == 'longAbruptExp' & block_num == '4') |
+  #        (exp == 'gradualExp' & block_num == '1') |
+  #        (exp == 'gradualExp' & block_num == '4')) 
 
 
-nocur_summary
+no_cur_ANOVA <- aov(mean_devs ~ exp, data = nocur_select_blocks)
 
+#show and ANOVA + assumptions
+print(summary(no_cur_ANOVA), digits = 6)
+eta_squared(no_cur_ANOVA)
+TukeyHSD(no_cur_ANOVA)
+```
+```{r}
+#plot
+p <- nocur_summary %>% 
+  filter(stratuse == '0') %>% #only the implicit aftereffects
+  filter(block_num == '4') %>%
+  ggplot(aes(exp, mean_devs)) +
+  geom_beeswarm() +
+  ggtitle("Block 4 Implicit Aftereffects")
+p
+```
+```{r}
+# descriptives
+nocur_summary %>% 
+  filter(stratuse == '0') %>% #only the implicit aftereffects
+  filter(block_num == '4') %>% 
+  group_by(exp) %>%
+  summarize(mean = mean(mean_devs), 
+            sd = sd(mean_devs), 
+            ci = vector_confint(mean_devs),
+            n = n())
 ```
 
 
-## Visualizing the data
+### Explicit strategy
+First block 1
 
+```{r}
+#first get explicit strat for each ppt
+
+nocur_w_strat <- nocur_summary %>% 
+  filter(stratuse == '1')
+
+nocur_wo_strat <- nocur_summary %>% 
+  filter(stratuse == '0')
+
+nocur_w_strat$strategy <- nocur_w_strat$mean_devs - nocur_wo_strat$mean_devs
+
+# do ANOVA only on first block
+no_cur_ANOVA <- aov(strategy ~ exp, data = (nocur_w_strat %>% filter(block_num == '1')))
+
+#show and ANOVA + assumptions
+print(summary(no_cur_ANOVA), digits = 6)
+eta_squared(no_cur_ANOVA)
+TukeyHSD(no_cur_ANOVA)
+```
+```{r}
+#plot
+p <- nocur_w_strat %>% filter(block_num == '1') %>%
+  ggplot(aes(exp, strategy)) +
+  geom_beeswarm() +
+  ggtitle("Block 1 Strategy Use")
+p
+```
+```{r}
+# descriptives
+nocur_w_strat %>% 
+  filter(block_num == '1') %>%
+  group_by(exp) %>%
+  summarize(mean = mean(strategy), 
+            sd = sd(strategy), 
+            ci = vector_confint(strategy),
+            n = n())
+```
+
+
+Repeat for block 4
+
+```{r}
+# do ANOVA only on 4th block
+no_cur_ANOVA <- aov(strategy ~ exp, data = (nocur_w_strat %>% filter(block_num == '4')))
+
+#show and ANOVA + assumptions
+print(summary(no_cur_ANOVA), digits = 6)
+eta_squared(no_cur_ANOVA)
+TukeyHSD(no_cur_ANOVA)
+```
+
+```{r}
+#plot
+p <- nocur_w_strat %>% filter(block_num == '4') %>%
+  ggplot(aes(exp, strategy)) +
+  geom_beeswarm() +
+  ggtitle("Block 4 Strategy Use")
+p
+```
+```{r}
+# descriptives
+nocur_w_strat %>% 
+  filter(block_num == '4') %>%
+  group_by(exp) %>%
+  summarize(mean = mean(strategy), 
+            sd = sd(strategy), 
+            ci = vector_confint(strategy),
+            n = n())
+```
+
+# Reach training analysis
+
+## Preprocessing
+
+```{r}
+omnibus_training <- read_delim("data/omnibus/omnibus_training.csv", 
+                            delim = ",", 
+                            col_types = cols(.default = col_double(), 
+                                             task_num = col_double(),
+                                             trial_num = col_double(),
+                                             rotation_angle = col_factor(),
+                                             targetangle_deg = col_factor(),
+                                             ppt = col_factor(),
+                                             exp = col_factor()))
+
+omnibus_training <- omnibus_training %>% 
+  filter(exp != "abruptExp", exp != 'reintroExp') %>%
+  select(-trial_num)
+
+
+# isolate rotated and bl
+rot_training <- filter(omnibus_training, rotation_angle != 0)
+bl_training <- filter(omnibus_training, rotation_angle == 0)
+
+
+apply_blcorrection <- function(rot_df_row, bl_df){
+  
+  # make sure input is in format: targetangle_deg, ppt, angular_dev
+
+  bl <- filter(bl_df, 
+               targetangle_deg == rot_df_row[1] & 
+                 ppt == rot_df_row[2])$angular_dev %>% 
+    mean(na.rm = TRUE)
+
+  
+  corrected_dev <- as.numeric(rot_df_row[3]) - bl
+  
+  return(corrected_dev)
+}
+
+
+rot_training$temp <- select(rot_training, targetangle_deg, ppt, angular_dev) %>%
+  apply(1, FUN = apply_blcorrection, bl_df = bl_training)
+
+# rename some columns
+rot_training <- 
+  rot_training %>% 
+  rename(raw_angular_dev = angular_dev) %>%
+  rename(angular_dev = temp)
+
+```
+
+We now have bl-corrected rot_training
+
+```{r}
+training_summary_per_trial <- rot_training %>%
+  group_by(exp, trial_num_cont) %>%
+  summarise(mean_devs = mean(angular_dev), sd = sd(angular_dev), 
+            ci = vector_confint(angular_dev))
+
+#training_summary$rotation_angle <- factor(training_summary$rotation_angle, levels=c("-15", "-30", "-45", "-60"))
+training_summary_per_trial$trial_num_cont <- training_summary_per_trial$trial_num_cont - 66
+
+```
+
+We need to label the block number for each trial.
+```{r}
+#first add block number
+block_num <- function(df){
+  # these if statements are repetitive at the moment. I've kept them in case different trials need to be isolated for different experiment protocols
+  x <- as.double(df[1])
+  if(df[2] == "gradualExp"){
+    if (x <= 69)
+      return(0)
+    else if (x >= 127 & x <= 132)
+      return(1)
+    else if (x >= 193 & x <= 198)
+      return(2)
+    else if (x >= 259 & x <= 264)
+      return(3)
+    else if (x >= 325 & x <= 330)
+      return(4)
+    else
+      return(10)
+  }
+  else if(df[2] == "stepwiseExp") {
+    if (x <= 69)
+      return(0)
+    else if (x >= 127 & x <= 132)
+      return(1)
+    else if (x >= 193 & x <= 198)
+      return(2)
+    else if (x >= 259 & x <= 264)
+      return(3)
+    else if (x >= 325 & x <= 330)
+      return(4)
+    else
+      return(10)
+  }
+  else { #for longAbrupt
+    if (x <= 69)
+      return(0)
+    else if (x >= 127 & x <= 132)
+      return(1)
+    else if (x >= 193 & x <= 198)
+      return(2)
+    else if (x >= 259 & x <= 264)
+      return(3)
+    else if (x >= 325 & x <= 330)
+      return(4)
+    else
+      return(10)
+  }
+}
+
+rot_training$block_num <- apply(rot_training[ , c("trial_num_cont", "exp")], 
+                                1, block_num)
+rot_training$block_num <- factor(rot_training$block_num, 
+                                 levels=c("0", "1", "2", "3", "4", "10"))
+head(rot_training)
+  
+```
+
+## Statistics
+
+First, we will just use the blocks of interest
+```{r}
+rot_training_ana_blocks <- rot_training %>%
+  filter(block_num != 10) %>%
+  group_by(exp, ppt, block_num) %>%
+  summarize(angular_dev_mean = mean(angular_dev), 
+            sd = sd(angular_dev), 
+            ci = vector_confint(angular_dev),
+            n = n())
+```
+
+### Training ANOVA
+This one will need to be a 3xN ANOVA (exp x blocks), where N is the number of blocks being used.
+```{r}
+training_anova <- ezANOVA( data = rot_training_ana_blocks,
+                           wid = ppt,
+                           dv = angular_dev_mean, 
+                           within = block_num,
+                           between = exp,
+                           detailed = FALSE,
+                           return_aov = TRUE)
+print(training_anova)
+```
+# Posthoc test: 
+Note the Tukey's HSD is for INDEPENDENT tests. Doesn't work for repeated measures like we have here (blocks)
+For the old paper, we just report ANOVA results, no posthocs for these.
+
+```{r}
+
+```
+### Plot
+```{r}
+p <- rot_training_ana_blocks %>%
+  ggplot(aes(block_num, angular_dev_mean, colour = exp)) +
+  geom_beeswarm(dodge.width = 1) +
+  ggtitle("Training over blocks and experiments")
+p
+```
+
+
+# Old stuff
 ### Stepwise experiment
 
 
 ```{r}
-p <- 
-  nocur_summary %>%
+p <- nocur_summary %>%
   filter(exp == 'stepwiseExp') %>%
   group_by(rotation_angle, stratuse) %>%
   summarise(mean_dev = mean(mean_devs), 
@@ -257,43 +597,6 @@ After adapting to the full 60-degree rotations:
 ---
 # Plots
 ```{r}
-#first add block number
-block_num <- function(df){
-  if(df[2] == "gradualExp"){
-    if (df[1] < 20)
-      return(1)
-    else if (df[1] < 34)
-      return(2)
-    else if (df[1] < 46)
-      return(3)
-    else
-      return(4)
-  }
-  else if(df[2] == "reintroExp") {
-    if (df[1] < 25)
-      return(1)
-    else if (df[1] < 38)
-      return(2)
-    else if (df[1] < 51)
-      return(3)
-    else
-      return(4)
-  }
-  else {
-    if (df[1] < 25)
-      return(1)
-    else if (df[1] < 37)
-      return(2)
-    else if (df[1] < 49)
-      return(3)
-    else
-      return(4)
-  }
-}
-
-rot_nocur$block_num <- apply(rot_nocur[ , c("task_num", "exp")], 1, block_num)
-  
-  
 nocur_summary_blocks <- rot_nocur %>%
   group_by(exp, ppt, rotation_angle, block_num, stratuse) %>%
   summarise(mean_devs = mean(angular_dev), 
@@ -432,64 +735,6 @@ ggsave(p, height = 14, width = 20, device = "svg", filename = "data/withStrat_no
 
 ## Plots for Learning Curves
 
-```{r}
-omnibus_training <- read_delim("data/omnibus/omnibus_training.csv", 
-                            delim = ",", 
-                            col_types = cols(.default = col_double(), 
-                                             task_num = col_double(),
-                                             trial_num = col_double(),
-                                             rotation_angle = col_factor(),
-                                             targetangle_deg = col_factor(),
-                                             ppt = col_character(),
-                                             exp = col_character()))
-
-omnibus_training <- omnibus_training %>% 
-  filter(exp != "abruptExp")
-
-
-# isolate rotated and bl
-rot_training <- filter(omnibus_training, rotation_angle != 0)
-bl_training <- filter(omnibus_training, rotation_angle == 0)
-
-
-apply_blcorrection <- function(rot_df_row, bl_df){
-  
-  # make sure input is in format: targetangle_deg, ppt, angular_dev
-
-  bl <- filter(bl_df, 
-               targetangle_deg == rot_df_row[1] & 
-                 ppt == rot_df_row[2])$angular_dev %>% 
-    mean(na.rm = TRUE)
-
-  
-  corrected_dev <- as.numeric(rot_df_row[3]) - bl
-  
-  return(corrected_dev)
-}
-
-
-rot_training$temp <- select(rot_training, targetangle_deg, ppt, angular_dev) %>%
-  apply(1, FUN = apply_blcorrection, bl_df = bl_training)
-
-# rename some columns
-rot_training <- 
-  rot_training %>% 
-  rename(raw_angular_dev = angular_dev) %>%
-  rename(angular_dev = temp)
-
-```
-
-We now have bl-corrected rot_training
-
-```{r}
-training_summary <- rot_training %>%
-  group_by(exp, trial_num_cont) %>%
-  summarise(mean_devs = mean(angular_dev), sd = sd(angular_dev), ci = vector_confint(angular_dev))
-
-#training_summary$rotation_angle <- factor(training_summary$rotation_angle, levels=c("-15", "-30", "-45", "-60"))
-training_summary$trial_num_cont <- training_summary$trial_num_cont - 66
-
-```
 
 Below, we plot the learning curves (all reach-to-target tasks with a visible cursor)
 ```{r}

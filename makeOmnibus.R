@@ -26,7 +26,7 @@ library(tidyverse)
 
 ## ----
 ## Functions
-# function for making the omnubus thing
+# function for making the omnibus thing
 
 applyAtan2 <- function(df){
   return(((atan2(df[2] - df[4], df[1] - df[3]) * 180/pi) %% 360) - df[5]) # atan2(y,x) -- atan2 takes y first
