@@ -205,7 +205,7 @@ head(nocur_summary)
 
 ## Statistics
 
-### ANOVA
+### OMNIBUS ANOVA
 We do a 3x4x2 mixed ANOVA (experiment x block x strategy use)
 ```{r}
 #performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
@@ -222,41 +222,43 @@ print(no_cur_ANOVA)
 ```
 
 ### Implicit aftereffects
+We will do 2 sets of analyses for all sets of data. First, we compare our measures in blocks where they first hit 60-degree rotations. Then, we compare block 4 in all groups (time = same).
+
+
+
 To test whether the method of perturbation onset effected implicit learning, we compared the aftereffects of learning in No-Strategy trials.
 
+---
+1. Initial measures
 ```{r}
-nocur_select_blocks <- nocur_summary %>% 
+wo_strat_init_blocks <- nocur_summary %>% 
   filter(stratuse == '0') %>% #only the implicit aftereffects
-  filter(block_num == '4') # only comparing block 4 data
-  # filter((exp == 'stepwiseExp' & block_num == '4') | #only the 5 blocks (1 and 4)
-  #        (exp == 'longAbruptExp' & block_num == '1') |
-  #        (exp == 'longAbruptExp' & block_num == '4') |
-  #        (exp == 'gradualExp' & block_num == '1') |
-  #        (exp == 'gradualExp' & block_num == '4')) 
+  filter((exp == 'stepwiseExp' & block_num == '4') | #only the 5 blocks (1 and 4)
+         (exp == 'longAbruptExp' & block_num == '1') |
+         (exp == 'gradualExp' & block_num == '1'))
 
 
-no_cur_ANOVA <- aov(mean_devs ~ exp, data = nocur_select_blocks)
+no_cur_ANOVA <- aov(mean_devs ~ exp, data = wo_strat_init_blocks)
 
 #show and ANOVA + assumptions
 print(summary(no_cur_ANOVA), digits = 6)
 eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
 ```
+Plot
 ```{r}
 #plot
-p <- nocur_summary %>% 
-  filter(stratuse == '0') %>% #only the implicit aftereffects
-  filter(block_num == '4') %>%
+p <- wo_strat_init_blocks %>% 
   ggplot(aes(exp, mean_devs)) +
   geom_beeswarm() +
-  ggtitle("Block 4 Implicit Aftereffects")
+  stat_summary(fun.y=mean, geom="point", size=3, color="red") +
+  ggtitle("Initial Implicit Aftereffects")
 p
+
 ```
 ```{r}
 # descriptives
-nocur_summary %>% 
-  filter(stratuse == '0') %>% #only the implicit aftereffects
-  filter(block_num == '4') %>% 
+wo_strat_init_blocks %>% 
   group_by(exp) %>%
   summarize(mean = mean(mean_devs), 
             sd = sd(mean_devs), 
@@ -265,20 +267,100 @@ nocur_summary %>%
 ```
 
 
-### Explicit strategy
-First block 1
+---
+2. Time-constant measures
 
+```{r}
+wo_strat_final_blocks <- nocur_summary %>% 
+  filter(stratuse == '0') %>% #only the implicit aftereffects
+  filter(block_num == '4') # only comparing block 4 data
+
+
+no_cur_ANOVA <- aov(mean_devs ~ exp, data = wo_strat_final_blocks)
+
+#show and ANOVA + assumptions
+print(summary(no_cur_ANOVA), digits = 6)
+eta_squared(no_cur_ANOVA)
+TukeyHSD(no_cur_ANOVA)
+```
+
+```{r}
+#plot
+p <- wo_strat_final_blocks %>% 
+  ggplot(aes(exp, mean_devs)) +
+  geom_beeswarm() +
+  stat_summary(fun.y=mean, geom="point", size=3, color="red") +
+  ggtitle("Block 4 Implicit Aftereffects")
+p
+```
+
+```{r}
+# descriptives
+wo_strat_final_blocks %>% 
+  group_by(exp) %>%
+  summarize(mean = mean(mean_devs), 
+            sd = sd(mean_devs), 
+            ci = vector_confint(mean_devs),
+            n = n())
+```
+
+
+
+
+### Explicit strategy
+Same analysis pipeline as for the implicit measures
+
+First, we need to actually calculate strategy
 ```{r}
 #first get explicit strat for each ppt
 
-nocur_w_strat <- nocur_summary %>% 
-  filter(stratuse == '1')
+nocur_summary_wide <- nocur_summary %>%
+  select(-sd, -ci) %>%
+  pivot_wider(names_from = "stratuse", 
+              values_from = mean_devs, 
+              names_prefix = "strat_") %>%
+  mutate(strategy = strat_1 - strat_0)
+```
 
-nocur_wo_strat <- nocur_summary %>% 
-  filter(stratuse == '0')
+1. Initial measures
+```{r}
+strat_initial_blocks <- nocur_summary_wide %>% 
+  filter((exp == 'stepwiseExp' & block_num == '4') | #only the 5 blocks (1 and 4)
+         (exp == 'longAbruptExp' & block_num == '1') |
+         (exp == 'gradualExp' & block_num == '1'))
 
-nocur_w_strat$strategy <- nocur_w_strat$mean_devs - nocur_wo_strat$mean_devs
 
+no_cur_ANOVA <- aov(strategy ~ exp, data = strat_initial_blocks)
+
+#show and ANOVA + assumptions
+print(summary(no_cur_ANOVA), digits = 6)
+eta_squared(no_cur_ANOVA)
+TukeyHSD(no_cur_ANOVA)
+```
+
+```{r}
+#plot
+p <- strat_initial_blocks %>% 
+  ggplot(aes(exp, strategy)) +
+  geom_beeswarm() +
+  stat_summary(fun.y=mean, geom="point", size=3, color="red") +
+  ggtitle("Initial Strategy")
+p
+```
+
+```{r}
+# descriptives
+strat_initial_blocks %>% 
+  group_by(exp) %>%
+  summarize(mean = mean(strategy), 
+            sd = sd(strategy), 
+            ci = vector_confint(strategy),
+            n = n())
+```
+
+---
+
+```{r}
 # do ANOVA only on first block
 no_cur_ANOVA <- aov(strategy ~ exp, data = (nocur_w_strat %>% filter(block_num == '1')))
 
@@ -287,6 +369,8 @@ print(summary(no_cur_ANOVA), digits = 6)
 eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
 ```
+
+
 ```{r}
 #plot
 p <- nocur_w_strat %>% filter(block_num == '1') %>%
@@ -295,6 +379,8 @@ p <- nocur_w_strat %>% filter(block_num == '1') %>%
   ggtitle("Block 1 Strategy Use")
 p
 ```
+
+
 ```{r}
 # descriptives
 nocur_w_strat %>% 
