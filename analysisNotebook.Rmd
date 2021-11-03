@@ -13,6 +13,7 @@ output:
 
 ```{r setup, include=FALSE, warning=FALSE}
 source("analysisFunctions.R")
+source("helper_funcs.R")
 library(data.table)
 library(tidyverse)
 library(ggbeeswarm)
@@ -248,13 +249,7 @@ TukeyHSD(no_cur_ANOVA)
 Plot
 ```{r}
 #plot
-p <- wo_strat_init_blocks %>% 
-  ggplot(aes(exp, mean_devs)) +
-  geom_beeswarm() +
-  stat_summary(fun.y=mean, geom="point", size=3, color="red") +
-  ggtitle("Initial Implicit Aftereffects")
-p
-
+plot_group_density(wo_strat_init_blocks, "exp", "mean_devs", title = "Initial Implicit Aftereffects")
 ```
 ```{r}
 # descriptives
@@ -286,12 +281,7 @@ TukeyHSD(no_cur_ANOVA)
 
 ```{r}
 #plot
-p <- wo_strat_final_blocks %>% 
-  ggplot(aes(exp, mean_devs)) +
-  geom_beeswarm() +
-  stat_summary(fun.y=mean, geom="point", size=3, color="red") +
-  ggtitle("Block 4 Implicit Aftereffects")
-p
+plot_group_density(wo_strat_final_blocks, "exp", "mean_devs", title = "Block 4 Implicit Aftereffects")
 ```
 
 ```{r}
@@ -340,12 +330,7 @@ TukeyHSD(no_cur_ANOVA)
 
 ```{r}
 #plot
-p <- strat_initial_blocks %>% 
-  ggplot(aes(exp, strategy)) +
-  geom_beeswarm() +
-  stat_summary(fun.y=mean, geom="point", size=3, color="red") +
-  ggtitle("Initial Strategy")
-p
+plot_group_density(strat_initial_blocks, "exp", "strategy", title = "Initial Strategy")
 ```
 
 ```{r}
@@ -360,9 +345,12 @@ strat_initial_blocks %>%
 
 ---
 
+2. Same but for the final block
 ```{r}
-# do ANOVA only on first block
-no_cur_ANOVA <- aov(strategy ~ exp, data = (nocur_w_strat %>% filter(block_num == '1')))
+strat_final_blocks <- nocur_summary_wide %>% 
+  filter(block_num == '4')
+
+no_cur_ANOVA <- aov(strategy ~ exp, data = strat_final_blocks)
 
 #show and ANOVA + assumptions
 print(summary(no_cur_ANOVA), digits = 6)
@@ -373,18 +361,13 @@ TukeyHSD(no_cur_ANOVA)
 
 ```{r}
 #plot
-p <- nocur_w_strat %>% filter(block_num == '1') %>%
-  ggplot(aes(exp, strategy)) +
-  geom_beeswarm() +
-  ggtitle("Block 1 Strategy Use")
-p
+plot_group_density(strat_final_blocks, "exp", "strategy", title = "BLock 4 Strategy")
 ```
 
 
 ```{r}
 # descriptives
-nocur_w_strat %>% 
-  filter(block_num == '1') %>%
+strat_final_blocks %>% 
   group_by(exp) %>%
   summarize(mean = mean(strategy), 
             sd = sd(strategy), 
@@ -393,36 +376,7 @@ nocur_w_strat %>%
 ```
 
 
-Repeat for block 4
-
-```{r}
-# do ANOVA only on 4th block
-no_cur_ANOVA <- aov(strategy ~ exp, data = (nocur_w_strat %>% filter(block_num == '4')))
-
-#show and ANOVA + assumptions
-print(summary(no_cur_ANOVA), digits = 6)
-eta_squared(no_cur_ANOVA)
-TukeyHSD(no_cur_ANOVA)
-```
-
-```{r}
-#plot
-p <- nocur_w_strat %>% filter(block_num == '4') %>%
-  ggplot(aes(exp, strategy)) +
-  geom_beeswarm() +
-  ggtitle("Block 4 Strategy Use")
-p
-```
-```{r}
-# descriptives
-nocur_w_strat %>% 
-  filter(block_num == '4') %>%
-  group_by(exp) %>%
-  summarize(mean = mean(strategy), 
-            sd = sd(strategy), 
-            ci = vector_confint(strategy),
-            n = n())
-```
+---
 
 # Reach training analysis
 
@@ -620,7 +574,7 @@ p <- p +
         axis.text = element_text(size=20), 
         legend.text = element_text(size=24))
 
-ggsave(p, height = 7, width = 10, device = "svg", filename = "data/paper_figs/training_plot_blocks.svg")
+# ggsave(p, height = 7, width = 10, device = "svg", filename = "data/paper_figs/training_plot_blocks.svg")
 ```
 # Additional Analyses
 ## Rebounds
