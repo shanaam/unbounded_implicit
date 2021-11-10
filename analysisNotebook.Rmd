@@ -189,8 +189,6 @@ rot_nocur$rotation_angle <- factor(rot_nocur$rotation_angle, levels=c("-15", "-3
 ```
 
 
-__We might want to use group by to get participant means!__
-
 Now we will get a mean for each participant
 
 ```{r}
@@ -241,7 +239,7 @@ wo_strat_init_blocks <- nocur_summary %>%
 
 no_cur_ANOVA <- aov(mean_devs ~ exp, data = wo_strat_init_blocks)
 
-#show and ANOVA + assumptions
+#show ANOVA + assumptions
 print(summary(no_cur_ANOVA), digits = 6)
 eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
@@ -273,7 +271,7 @@ wo_strat_final_blocks <- nocur_summary %>%
 
 no_cur_ANOVA <- aov(mean_devs ~ exp, data = wo_strat_final_blocks)
 
-#show and ANOVA + assumptions
+#show ANOVA + assumptions
 print(summary(no_cur_ANOVA), digits = 6)
 eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
@@ -322,7 +320,7 @@ strat_initial_blocks <- nocur_summary_wide %>%
 
 no_cur_ANOVA <- aov(strategy ~ exp, data = strat_initial_blocks)
 
-#show and ANOVA + assumptions
+#show ANOVA + assumptions
 print(summary(no_cur_ANOVA), digits = 6)
 eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
@@ -352,7 +350,7 @@ strat_final_blocks <- nocur_summary_wide %>%
 
 no_cur_ANOVA <- aov(strategy ~ exp, data = strat_final_blocks)
 
-#show and ANOVA + assumptions
+#show ANOVA + assumptions
 print(summary(no_cur_ANOVA), digits = 6)
 eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
@@ -655,6 +653,8 @@ p <- desc_temp %>%
 p
 
 ```
+
+
 ## Measures of explicit learning
 
 We measure explicit adaptation, but it is sometimes taken as the difference between performance in training trials and implicit probes.
