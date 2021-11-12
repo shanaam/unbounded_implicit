@@ -12,6 +12,8 @@ output:
 ---
 
 ```{r setup, include=FALSE, warning=FALSE}
+rm(list = ls())      # clean environment
+
 source("analysisFunctions.R")
 source("helper_funcs.R")
 library(data.table)
@@ -19,6 +21,7 @@ library(tidyverse)
 library(ggbeeswarm)
 library(ez) #for ANOVAs
 library(effectsize) # for eta-squared
+
 ```
 
 # Some backround
@@ -244,6 +247,14 @@ print(summary(no_cur_ANOVA), digits = 6)
 eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
 ```
+Bayes Factors
+```{r}
+bayes_t_test(wo_strat_init_blocks, "exp", "longAbruptExp", "gradualExp", "mean_devs")
+bayes_t_test(wo_strat_init_blocks, "exp", "stepwiseExp", "gradualExp", "mean_devs")
+bayes_t_test(wo_strat_init_blocks, "exp", "stepwiseExp", "longAbruptExp", "mean_devs")
+```
+
+
 Plot
 ```{r}
 #plot
@@ -275,6 +286,13 @@ no_cur_ANOVA <- aov(mean_devs ~ exp, data = wo_strat_final_blocks)
 print(summary(no_cur_ANOVA), digits = 6)
 eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
+```
+
+Bayes Factors
+```{r}
+bayes_t_test(wo_strat_final_blocks, "exp", "longAbruptExp", "gradualExp", "mean_devs")
+bayes_t_test(wo_strat_final_blocks, "exp", "stepwiseExp", "gradualExp", "mean_devs")
+bayes_t_test(wo_strat_final_blocks, "exp", "stepwiseExp", "longAbruptExp", "mean_devs")
 ```
 
 ```{r}
@@ -326,6 +344,13 @@ eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
 ```
 
+Bayes Factors
+```{r}
+bayes_t_test(strat_initial_blocks, "exp", "longAbruptExp", "gradualExp", "strategy")
+bayes_t_test(strat_initial_blocks, "exp", "stepwiseExp", "gradualExp", "strategy")
+bayes_t_test(strat_initial_blocks, "exp", "stepwiseExp", "longAbruptExp", "strategy")
+```
+
 ```{r}
 #plot
 plot_group_density(strat_initial_blocks, "exp", "strategy", title = "Initial Strategy")
@@ -355,7 +380,12 @@ print(summary(no_cur_ANOVA), digits = 6)
 eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
 ```
-
+Bayes Factors
+```{r}
+bayes_t_test(strat_final_blocks, "exp", "longAbruptExp", "gradualExp", "strategy")
+bayes_t_test(strat_final_blocks, "exp", "stepwiseExp", "gradualExp", "strategy")
+bayes_t_test(strat_final_blocks, "exp", "stepwiseExp", "longAbruptExp", "strategy")
+```
 
 ```{r}
 #plot
