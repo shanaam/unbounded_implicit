@@ -86,7 +86,12 @@ omnibus_nocur <- read_delim("data/omnibus/omnibus_nocur.csv",
                                              exp = col_factor()))
 
 omnibus_nocur <- omnibus_nocur %>% 
-  filter(exp != "abruptExp", exp != "reintroExp")
+  filter(exp != "abruptExp", exp != "reintroExp") 
+  
+# recode exp groups
+omnibus_nocur$exp <- recode_factor(omnibus_nocur$exp, "longAbruptExp" = "abrupt",
+                                   "gradualExp" = "ramped",
+                                   "stepwiseExp" = "stepped")
 
 head(omnibus_nocur)
 
@@ -135,7 +140,7 @@ We need to label the block number for each trial.
 ```{r}
 #first add block number
 block_num <- function(df){
-  if(df[2] == "gradualExp"){
+  if(df[2] == "ramped"){
     if (df[1] < 20)
       return(1)
     else if (df[1] < 34)
@@ -217,11 +222,27 @@ To test whether the method of perturbation onset effected implicit learning, we 
 ```{r}
 wo_strat_init_blocks <- nocur_summary %>% 
   filter(stratuse == '0') %>% #only the implicit aftereffects
-  filter((exp == 'stepwiseExp' & block_num == '4') | #only the 5 blocks (1 and 4)
-         (exp == 'longAbruptExp' & block_num == '1') |
-         (exp == 'gradualExp' & block_num == '1'))
+  filter((exp == 'stepped' & block_num == '4') | #only the 5 blocks (1 and 4)
+         (exp == 'abrupt' & block_num == '1') |
+         (exp == 'ramped' & block_num == '1'))
 
+```
 
+Plot
+```{r}
+#plot
+plot_desc_group_density(wo_strat_init_blocks, "exp", "mean_devs", title = "A. Initial Implicit Aftereffects")
+```
+```{r}
+# descriptives
+wo_strat_init_blocks %>% 
+  group_by(exp) %>%
+  summarise(mean = mean(mean_devs), 
+            sd = sd(mean_devs), 
+            ci = vector_confint(mean_devs),
+            n = n())
+```
+```{r}
 no_cur_ANOVA <- aov(mean_devs ~ exp, data = wo_strat_init_blocks)
 
 #show ANOVA + assumptions
@@ -233,26 +254,13 @@ Bayes Factors
 ```{r}
 anovaBF(mean_devs ~ exp, data = wo_strat_init_blocks, progress=FALSE)
 
-bayes_t_test(wo_strat_init_blocks, "exp", "longAbruptExp", "gradualExp", "mean_devs")
-bayes_t_test(wo_strat_init_blocks, "exp", "stepwiseExp", "gradualExp", "mean_devs")
-bayes_t_test(wo_strat_init_blocks, "exp", "stepwiseExp", "longAbruptExp", "mean_devs")
+bayes_t_test(wo_strat_init_blocks, "exp", "abrupt", "ramped", "mean_devs")
+bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "ramped", "mean_devs")
+bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "abrupt", "mean_devs")
 ```
 
 
-Plot
-```{r}
-#plot
-plot_group_density(wo_strat_init_blocks, "exp", "mean_devs", title = "A. Initial Implicit Aftereffects")
-```
-```{r}
-# descriptives
-wo_strat_init_blocks %>% 
-  group_by(exp) %>%
-  summarise(mean = mean(mean_devs), 
-            sd = sd(mean_devs), 
-            ci = vector_confint(mean_devs),
-            n = n())
-```
+
 
 
 ---
@@ -262,30 +270,11 @@ wo_strat_init_blocks %>%
 wo_strat_final_blocks <- nocur_summary %>% 
   filter(stratuse == '0') %>% #only the implicit aftereffects
   filter(block_num == '4') # only comparing block 4 data
-
-
-no_cur_ANOVA <- aov(mean_devs ~ exp, data = wo_strat_final_blocks)
-
-#show ANOVA + assumptions
-print(summary(no_cur_ANOVA), digits = 6)
-eta_squared(no_cur_ANOVA)
-TukeyHSD(no_cur_ANOVA)
 ```
-
-Bayes Factors
-```{r}
-anovaBF(mean_devs ~ exp, data = wo_strat_final_blocks, progress=FALSE)
-
-bayes_t_test(wo_strat_final_blocks, "exp", "longAbruptExp", "gradualExp", "mean_devs")
-bayes_t_test(wo_strat_final_blocks, "exp", "stepwiseExp", "gradualExp", "mean_devs")
-bayes_t_test(wo_strat_final_blocks, "exp", "stepwiseExp", "longAbruptExp", "mean_devs")
-```
-
 ```{r}
 #plot
-plot_group_density(wo_strat_final_blocks, "exp", "mean_devs", title = "B. Block 4 Implicit Aftereffects")
+plot_desc_group_density(wo_strat_final_blocks, "exp", "mean_devs", title = "B. Block 4 Implicit Aftereffects")
 ```
-
 ```{r}
 # descriptives
 wo_strat_final_blocks %>% 
@@ -294,6 +283,22 @@ wo_strat_final_blocks %>%
             sd = sd(mean_devs), 
             ci = vector_confint(mean_devs),
             n = n())
+```
+```{r}
+no_cur_ANOVA <- aov(mean_devs ~ exp, data = wo_strat_final_blocks)
+
+#show ANOVA + assumptions
+print(summary(no_cur_ANOVA), digits = 6)
+eta_squared(no_cur_ANOVA)
+TukeyHSD(no_cur_ANOVA)
+```
+Bayes Factors
+```{r}
+anovaBF(mean_devs ~ exp, data = wo_strat_final_blocks, progress=FALSE)
+
+bayes_t_test(wo_strat_final_blocks, "exp", "abrupt", "ramped", "mean_devs")
+bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "ramped", "mean_devs")
+bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "abrupt", "mean_devs")
 ```
 
 
@@ -317,10 +322,24 @@ nocur_summary_wide <- nocur_summary %>%
 1. Initial measures
 ```{r}
 strat_initial_blocks <- nocur_summary_wide %>% 
-  filter((exp == 'stepwiseExp' & block_num == '4') | #only the 5 blocks (1 and 4)
-         (exp == 'longAbruptExp' & block_num == '1') |
-         (exp == 'gradualExp' & block_num == '1'))
-
+  filter((exp == 'stepped' & block_num == '4') | #only the 5 blocks (1 and 4)
+         (exp == 'abrupt' & block_num == '1') |
+         (exp == 'ramped' & block_num == '1'))
+```
+```{r}
+#plot
+plot_desc_group_density(strat_initial_blocks, "exp", "strategy", title = "A. Initial Strategy")
+```
+```{r}
+# descriptives
+strat_initial_blocks %>% 
+  group_by(exp) %>%
+  summarise(mean = mean(strategy), 
+            sd = sd(strategy), 
+            ci = vector_confint(strategy),
+            n = n())
+```
+```{r}
 
 no_cur_ANOVA <- aov(strategy ~ exp, data = strat_initial_blocks)
 
@@ -334,25 +353,11 @@ Bayes Factors
 ```{r}
 anovaBF(strategy ~ exp, data = strat_initial_blocks, progress=FALSE)
 
-bayes_t_test(strat_initial_blocks, "exp", "longAbruptExp", "gradualExp", "strategy")
-bayes_t_test(strat_initial_blocks, "exp", "stepwiseExp", "gradualExp", "strategy")
-bayes_t_test(strat_initial_blocks, "exp", "stepwiseExp", "longAbruptExp", "strategy")
+bayes_t_test(strat_initial_blocks, "exp", "abrupt", "ramped", "strategy")
+bayes_t_test(strat_initial_blocks, "exp", "stepped", "ramped", "strategy")
+bayes_t_test(strat_initial_blocks, "exp", "stepped", "abrupt", "strategy")
 ```
 
-```{r}
-#plot
-plot_group_density(strat_initial_blocks, "exp", "strategy", title = "A. Initial Strategy")
-```
-
-```{r}
-# descriptives
-strat_initial_blocks %>% 
-  group_by(exp) %>%
-  summarise(mean = mean(strategy), 
-            sd = sd(strategy), 
-            ci = vector_confint(strategy),
-            n = n())
-```
 
 ---
 
@@ -365,7 +370,7 @@ strat_final_blocks <- nocur_summary_wide %>%
 
 ```{r}
 #plot
-plot_group_density(strat_final_blocks, "exp", "strategy", title = "B. BLock 4 Strategy")
+plot_desc_group_density(strat_final_blocks, "exp", "strategy", title = "B. BLock 4 Strategy")
 ```
 
 ```{r}
@@ -391,9 +396,9 @@ Bayes Factors
 ```{r}
 anovaBF(strategy ~ exp, data = strat_final_blocks, progress=FALSE)
 
-bayes_t_test(strat_final_blocks, "exp", "longAbruptExp", "gradualExp", "strategy")
-bayes_t_test(strat_final_blocks, "exp", "stepwiseExp", "gradualExp", "strategy")
-bayes_t_test(strat_final_blocks, "exp", "stepwiseExp", "longAbruptExp", "strategy")
+bayes_t_test(strat_final_blocks, "exp", "abrupt", "ramped", "strategy")
+bayes_t_test(strat_final_blocks, "exp", "stepped", "ramped", "strategy")
+bayes_t_test(strat_final_blocks, "exp", "stepped", "abrupt", "strategy")
 ```
 
 
@@ -418,6 +423,11 @@ omnibus_training <- read_delim("data/omnibus/omnibus_training.csv",
 omnibus_training <- omnibus_training %>% 
   filter(exp != "abruptExp", exp != 'reintroExp') %>%
   select(-trial_num)
+
+# recode exp groups
+omnibus_training$exp <- recode_factor(omnibus_training$exp, "longAbruptExp" = "abrupt",
+                                   "gradualExp" = "ramped",
+                                   "stepwiseExp" = "stepped")
 
 
 # isolate rotated and bl
@@ -492,7 +502,7 @@ head(rot_training_trial_sets)
 ```
 
 ```{r}
-plot_group_density(rot_training_trial_sets, "trial_set", "angular_dev_mean", subgroup = "exp", title = "Training trial sets")
+plot_desc_group_density(rot_training_trial_sets, "trial_set", "angular_dev_mean", subgroup = "exp", title = "Training trial sets")
 ```
 
 We confirm that all groups learn
@@ -504,7 +514,7 @@ training_final_trial_set <- rot_training_trial_sets %>%
 
 ```{r}
 #plot
-plot_group_density(training_final_trial_set, "exp", "angular_dev_mean", title = "BLock 4 Strategy")
+plot_desc_group_density(training_final_trial_set, "exp", "angular_dev_mean", title = "BLock 4 Adaptation")
 ```
 
 ```{r}
@@ -532,9 +542,9 @@ Bayes Factors
 ```{r}
 anovaBF(angular_dev_mean ~ exp, data = training_final_trial_set, progress=FALSE)
 
-bayes_t_test(training_final_trial_set, "exp", "longAbruptExp", "gradualExp", "angular_dev_mean")
-bayes_t_test(training_final_trial_set, "exp", "stepwiseExp", "gradualExp", "angular_dev_mean")
-bayes_t_test(training_final_trial_set, "exp", "stepwiseExp", "longAbruptExp", "angular_dev_mean")
+bayes_t_test(training_final_trial_set, "exp", "abrupt", "ramped", "angular_dev_mean")
+bayes_t_test(training_final_trial_set, "exp", "stepped", "ramped", "angular_dev_mean")
+bayes_t_test(training_final_trial_set, "exp", "stepped", "abrupt", "angular_dev_mean")
 ```
 
 
@@ -605,7 +615,7 @@ p <- rot_training_ana_blocks %>%
   theme_minimal() +
   theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
   scale_colour_manual(values=c( "#d40000", "#084594", "#8365b5"), 
-                       breaks=c("stepwiseExp", "longAbruptExp", "gradualExp"),
+                       breaks=c("stepped", "abrupt", "ramped"),
                        labels=c( "stepwise", "abrupt", "gradual")) +
   NULL
 p
@@ -669,6 +679,8 @@ p <- desc_temp %>%
 p
 
 ```
+
+
 ```{r}
 #descriptives
 desc_temp <- rot_rebounds %>%
@@ -709,9 +721,11 @@ per ppt, we need.. implicit learning per block (from nucursor data), training pe
 ```{r}
 # we can start with the implicit data. Formatted so that each participant has some values for each block
 pre_reb_devs <- rot_rebounds %>% 
-  filter(trial_num_cont %in% c(112, 178, 244, 310)) %>%
-  select(ppt, pre_reb_dev) %>%
-  bind_cols(block_num = as.factor(rep(1:4, 106)))
+  filter(trial_num_cont %in% c(46, 112, 178, 244)) %>%
+  select(ppt, pre_reb_dev) 
+
+pre_reb_devs <- pre_reb_devs %>% 
+  bind_cols(block_num = as.factor(rep(1:4, nrow(pre_reb_devs)/4)))
   
 per_ppt_format <- nocur_summary %>%
   select(-sd, -ci, -n) %>% #getting rid of sanity check variables
@@ -737,7 +751,7 @@ desc_temp <- combined_data %>%
             inferred_exp_mean = mean(inferred_exp), 
             inferred_exp_sd = sd(inferred_exp), 
             inferred_exp_ci = vector_confint(inferred_exp),
-            n = n())
+            n = n(), .groups = "drop")
 head(desc_temp)
 ```
 

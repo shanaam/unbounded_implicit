@@ -4,7 +4,7 @@ library(effsize)     # for Cohen's d
 library(BayesFactor) # to compute Bayes factors
 library(tidyverse)
 
-plot_group_density <- function(df, group, y, subgroup = NULL, title = "Distributions within Groups"){
+plot_desc_group_density <- function(df, group, y, subgroup = NULL, title = "Distributions within Groups"){
   # plot some density things for visualizing data in groups
   # group, and y are strings
   if (is.null(subgroup)){
@@ -13,6 +13,8 @@ plot_group_density <- function(df, group, y, subgroup = NULL, title = "Distribut
       geom_violin(aes(fill=.data[[group]]), alpha=0.2, draw_quantiles = c(.25, .5, .75), scale = "count") +
       geom_beeswarm(alpha = 0.5) +
       stat_summary(fun=mean, geom="point", size=3, color="red") +
+      theme_minimal() +
+      theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
       ggtitle(title)
   }
   else{
@@ -20,11 +22,14 @@ plot_group_density <- function(df, group, y, subgroup = NULL, title = "Distribut
       ggplot(aes(.data[[group]],.data[[y]], colour = .data[[subgroup]])) +
       geom_beeswarm(dodge.width = .9, alpha = 0.3) +
       geom_violin(aes(fill=.data[[subgroup]]), alpha=0.2, draw_quantiles = c(.25, .5, .75), scale = "count") +
+      theme_minimal() +
+      theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
       ggtitle(title)
   }
   
   return(p)
 }
+
 
 bayes_t_test <- function(df, group_title, group1, group2, dv){
   # bayes t-test
