@@ -242,7 +242,7 @@ bayes_t_test(wo_strat_init_blocks, "exp", "stepwiseExp", "longAbruptExp", "mean_
 Plot
 ```{r}
 #plot
-plot_group_density(wo_strat_init_blocks, "exp", "mean_devs", title = "Initial Implicit Aftereffects")
+plot_group_density(wo_strat_init_blocks, "exp", "mean_devs", title = "A. Initial Implicit Aftereffects")
 ```
 ```{r}
 # descriptives
@@ -283,7 +283,7 @@ bayes_t_test(wo_strat_final_blocks, "exp", "stepwiseExp", "longAbruptExp", "mean
 
 ```{r}
 #plot
-plot_group_density(wo_strat_final_blocks, "exp", "mean_devs", title = "Block 4 Implicit Aftereffects")
+plot_group_density(wo_strat_final_blocks, "exp", "mean_devs", title = "B. Block 4 Implicit Aftereffects")
 ```
 
 ```{r}
@@ -341,7 +341,7 @@ bayes_t_test(strat_initial_blocks, "exp", "stepwiseExp", "longAbruptExp", "strat
 
 ```{r}
 #plot
-plot_group_density(strat_initial_blocks, "exp", "strategy", title = "Initial Strategy")
+plot_group_density(strat_initial_blocks, "exp", "strategy", title = "A. Initial Strategy")
 ```
 
 ```{r}
@@ -365,7 +365,7 @@ strat_final_blocks <- nocur_summary_wide %>%
 
 ```{r}
 #plot
-plot_group_density(strat_final_blocks, "exp", "strategy", title = "BLock 4 Strategy")
+plot_group_density(strat_final_blocks, "exp", "strategy", title = "B. BLock 4 Strategy")
 ```
 
 ```{r}
