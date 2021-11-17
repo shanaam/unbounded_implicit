@@ -113,30 +113,12 @@ head(bl_nocur)
 
 Next, we need to apply a function to the rotated-session data. From each angular deviation, we will subtract the mean angular deviation of all baseline angular deviations that share the same participant and target angle. 
 
-The functions is as follows. 
 
-```{r}
-apply_blcorrection <- function(rot_df_row, bl_df){
-  
-  # make sure input is in format: targetangle_deg, ppt, angular_dev
-
-  bl <- filter(bl_df, 
-               targetangle_deg == rot_df_row[1] & 
-                 ppt == rot_df_row[2])$angular_dev %>% 
-    mean(na.rm = TRUE)
-
-  
-  corrected_dev <- as.numeric(rot_df_row[3]) - bl
-  
-  return(corrected_dev)
-}
-```
-
-Applying the above function to rotated-session-data.
+Applying the baseline correction function.
 
 ```{r}
 rot_nocur$temp <- select(rot_nocur, targetangle_deg, ppt, angular_dev) %>%
-  apply(1, FUN = apply_blcorrection, bl_df = bl_nocur)
+  apply(1, FUN = apply_nocur_blcorrection, bl_df = bl_nocur)
 
 # rename some columns
 rot_nocur <- 
@@ -200,7 +182,7 @@ nocur_summary <- rot_nocur %>%
   summarise(mean_devs = mean(angular_dev), 
             sd = sd(angular_dev), 
             ci = vector_confint(angular_dev),
-            n = n())
+            n = n(), .groups = "drop")
 
 head(nocur_summary)
 ```
@@ -249,6 +231,8 @@ TukeyHSD(no_cur_ANOVA)
 ```
 Bayes Factors
 ```{r}
+anovaBF(mean_devs ~ exp, data = wo_strat_init_blocks, progress=FALSE)
+
 bayes_t_test(wo_strat_init_blocks, "exp", "longAbruptExp", "gradualExp", "mean_devs")
 bayes_t_test(wo_strat_init_blocks, "exp", "stepwiseExp", "gradualExp", "mean_devs")
 bayes_t_test(wo_strat_init_blocks, "exp", "stepwiseExp", "longAbruptExp", "mean_devs")
@@ -264,7 +248,7 @@ plot_group_density(wo_strat_init_blocks, "exp", "mean_devs", title = "Initial Im
 # descriptives
 wo_strat_init_blocks %>% 
   group_by(exp) %>%
-  summarize(mean = mean(mean_devs), 
+  summarise(mean = mean(mean_devs), 
             sd = sd(mean_devs), 
             ci = vector_confint(mean_devs),
             n = n())
@@ -290,6 +274,8 @@ TukeyHSD(no_cur_ANOVA)
 
 Bayes Factors
 ```{r}
+anovaBF(mean_devs ~ exp, data = wo_strat_final_blocks, progress=FALSE)
+
 bayes_t_test(wo_strat_final_blocks, "exp", "longAbruptExp", "gradualExp", "mean_devs")
 bayes_t_test(wo_strat_final_blocks, "exp", "stepwiseExp", "gradualExp", "mean_devs")
 bayes_t_test(wo_strat_final_blocks, "exp", "stepwiseExp", "longAbruptExp", "mean_devs")
@@ -304,7 +290,7 @@ plot_group_density(wo_strat_final_blocks, "exp", "mean_devs", title = "Block 4 I
 # descriptives
 wo_strat_final_blocks %>% 
   group_by(exp) %>%
-  summarize(mean = mean(mean_devs), 
+  summarise(mean = mean(mean_devs), 
             sd = sd(mean_devs), 
             ci = vector_confint(mean_devs),
             n = n())
@@ -346,6 +332,8 @@ TukeyHSD(no_cur_ANOVA)
 
 Bayes Factors
 ```{r}
+anovaBF(strategy ~ exp, data = strat_initial_blocks, progress=FALSE)
+
 bayes_t_test(strat_initial_blocks, "exp", "longAbruptExp", "gradualExp", "strategy")
 bayes_t_test(strat_initial_blocks, "exp", "stepwiseExp", "gradualExp", "strategy")
 bayes_t_test(strat_initial_blocks, "exp", "stepwiseExp", "longAbruptExp", "strategy")
@@ -360,7 +348,7 @@ plot_group_density(strat_initial_blocks, "exp", "strategy", title = "Initial Str
 # descriptives
 strat_initial_blocks %>% 
   group_by(exp) %>%
-  summarize(mean = mean(strategy), 
+  summarise(mean = mean(strategy), 
             sd = sd(strategy), 
             ci = vector_confint(strategy),
             n = n())
@@ -372,6 +360,25 @@ strat_initial_blocks %>%
 ```{r}
 strat_final_blocks <- nocur_summary_wide %>% 
   filter(block_num == '4')
+```
+
+
+```{r}
+#plot
+plot_group_density(strat_final_blocks, "exp", "strategy", title = "BLock 4 Strategy")
+```
+
+```{r}
+# descriptives
+strat_final_blocks %>% 
+  group_by(exp) %>%
+  summarise(mean = mean(strategy), 
+            sd = sd(strategy), 
+            ci = vector_confint(strategy),
+            n = n())
+```
+
+```{r}
 
 no_cur_ANOVA <- aov(strategy ~ exp, data = strat_final_blocks)
 
@@ -382,26 +389,13 @@ TukeyHSD(no_cur_ANOVA)
 ```
 Bayes Factors
 ```{r}
+anovaBF(strategy ~ exp, data = strat_final_blocks, progress=FALSE)
+
 bayes_t_test(strat_final_blocks, "exp", "longAbruptExp", "gradualExp", "strategy")
 bayes_t_test(strat_final_blocks, "exp", "stepwiseExp", "gradualExp", "strategy")
 bayes_t_test(strat_final_blocks, "exp", "stepwiseExp", "longAbruptExp", "strategy")
 ```
 
-```{r}
-#plot
-plot_group_density(strat_final_blocks, "exp", "strategy", title = "BLock 4 Strategy")
-```
-
-
-```{r}
-# descriptives
-strat_final_blocks %>% 
-  group_by(exp) %>%
-  summarize(mean = mean(strategy), 
-            sd = sd(strategy), 
-            ci = vector_confint(strategy),
-            n = n())
-```
 
 
 ---
@@ -430,25 +424,9 @@ omnibus_training <- omnibus_training %>%
 rot_training <- filter(omnibus_training, rotation_angle != 0)
 bl_training <- filter(omnibus_training, rotation_angle == 0)
 
-
-apply_blcorrection <- function(rot_df_row, bl_df){
-  
-  # make sure input is in format: targetangle_deg, ppt, angular_dev
-
-  bl <- filter(bl_df, 
-               targetangle_deg == rot_df_row[1] & 
-                 ppt == rot_df_row[2])$angular_dev %>% 
-    mean(na.rm = TRUE)
-
-  
-  corrected_dev <- as.numeric(rot_df_row[3]) - bl
-  
-  return(corrected_dev)
-}
-
-
+# apply baseline correction ()
 rot_training$temp <- select(rot_training, targetangle_deg, ppt, angular_dev) %>%
-  apply(1, FUN = apply_blcorrection, bl_df = bl_training)
+  apply(1, FUN = apply_training_blcorrection, bl_df = bl_training)
 
 # rename some columns
 rot_training <- 
@@ -464,82 +442,117 @@ We now have bl-corrected rot_training
 training_summary_per_trial <- rot_training %>%
   group_by(exp, trial_num_cont) %>%
   summarise(mean_devs = mean(angular_dev), sd = sd(angular_dev), 
-            ci = vector_confint(angular_dev))
+            ci = vector_confint(angular_dev), .groups = "drop")
 
 #training_summary$rotation_angle <- factor(training_summary$rotation_angle, levels=c("-15", "-30", "-45", "-60"))
 training_summary_per_trial$trial_num_cont <- training_summary_per_trial$trial_num_cont - 66
 
 ```
 
-We need to label the block number for each trial.
+We need to label the block number, and trial sets for each trial.
 ```{r}
-#first add block number
-block_num <- function(df){
-  # these if statements are repetitive at the moment. I've kept them in case different trials need to be isolated for different experiment protocols
-  x <- as.double(df[1])
-  if(df[2] == "gradualExp"){
-    if (x <= 69)
-      return(0)
-    else if (x >= 127 & x <= 132)
-      return(1)
-    else if (x >= 193 & x <= 198)
-      return(2)
-    else if (x >= 259 & x <= 264)
-      return(3)
-    else if (x >= 325 & x <= 330)
-      return(4)
-    else
-      return(10)
-  }
-  else if(df[2] == "stepwiseExp") {
-    if (x <= 69)
-      return(0)
-    else if (x >= 127 & x <= 132)
-      return(1)
-    else if (x >= 193 & x <= 198)
-      return(2)
-    else if (x >= 259 & x <= 264)
-      return(3)
-    else if (x >= 325 & x <= 330)
-      return(4)
-    else
-      return(10)
-  }
-  else { #for longAbrupt
-    if (x <= 69)
-      return(0)
-    else if (x >= 127 & x <= 132)
-      return(1)
-    else if (x >= 193 & x <= 198)
-      return(2)
-    else if (x >= 259 & x <= 264)
-      return(3)
-    else if (x >= 325 & x <= 330)
-      return(4)
-    else
-      return(10)
-  }
-}
-
+# add the block nums (from helperfuncs.R)
 rot_training$block_num <- apply(rot_training[ , c("trial_num_cont", "exp")], 
-                                1, block_num)
+                                1, add_block_num)
 rot_training$block_num <- factor(rot_training$block_num, 
                                  levels=c("0", "1", "2", "3", "4", "10"))
+
+# add the trial sets (from helperfuncs.R)
+rot_training$trial_set <- apply(rot_training[ , c("trial_num_cont", "exp")], 
+                                1, add_trial_set)
+rot_training$trial_set <- factor(rot_training$trial_set, 
+                                 levels=c("1", "2", "3", "10"))
+
+# fix the trial nums
+rot_training$trial_num_cont <- rot_training$trial_num_cont - 66
+
 head(rot_training)
   
 ```
 
 ## Statistics
 
-First, we will just use the blocks of interest
+Plot of relevant groups
+
+```{r}
+rot_training_trial_sets <- rot_training %>%
+  filter(trial_set != 10) %>%
+  group_by(exp, ppt, trial_set) %>%
+  summarise(angular_dev_mean = mean(angular_dev), 
+            sd = sd(angular_dev), 
+            ci = vector_confint(angular_dev),
+            n = n(), .groups = "drop")
+  # group_by(exp, trial_set) %>%
+  # summarise(trial_set_mean = mean(angular_dev_mean), 
+  #           sd = sd(angular_dev_mean), 
+  #           ci = vector_confint(angular_dev_mean),
+  #           n = n(), .groups = "drop")
+
+head(rot_training_trial_sets)
+```
+
+```{r}
+plot_group_density(rot_training_trial_sets, "trial_set", "angular_dev_mean", subgroup = "exp", title = "Training trial sets")
+```
+
+We confirm that all groups learn
+
+```{r}
+training_final_trial_set <- rot_training_trial_sets %>% 
+  filter(trial_set == '3')
+```
+
+```{r}
+#plot
+plot_group_density(training_final_trial_set, "exp", "angular_dev_mean", title = "BLock 4 Strategy")
+```
+
+```{r}
+# descriptives
+training_final_trial_set %>% 
+  group_by(exp) %>%
+  summarise(mean = mean(angular_dev_mean), 
+            norm_mean = mean(angular_dev_mean)/60,
+            sd = sd(angular_dev_mean), 
+            ci = vector_confint(angular_dev_mean),
+            n = n())
+```
+
+```{r}
+
+training_ANOVA <- aov(angular_dev_mean ~ exp, data = training_final_trial_set)
+
+#show ANOVA + assumptions
+print(summary(training_ANOVA), digits = 6)
+eta_squared(training_ANOVA)
+TukeyHSD(training_ANOVA)
+```
+
+Bayes Factors
+```{r}
+anovaBF(angular_dev_mean ~ exp, data = training_final_trial_set, progress=FALSE)
+
+bayes_t_test(training_final_trial_set, "exp", "longAbruptExp", "gradualExp", "angular_dev_mean")
+bayes_t_test(training_final_trial_set, "exp", "stepwiseExp", "gradualExp", "angular_dev_mean")
+bayes_t_test(training_final_trial_set, "exp", "stepwiseExp", "longAbruptExp", "angular_dev_mean")
+```
+
+
+
+
+
+
+----
+
+We use the blocks of interest
 ```{r}
 rot_training_ana_blocks <- rot_training %>%
   filter(block_num != 10) %>%
   group_by(exp, ppt, block_num) %>%
-  summarize(angular_dev_mean = mean(angular_dev), 
+  summarise(angular_dev_mean = mean(angular_dev), 
             sd = sd(angular_dev), 
             ci = vector_confint(angular_dev),
-            n = n())
+            n = n(), .groups = "drop")
 ```
 
 ### Training ANOVA
@@ -562,10 +575,10 @@ For the old paper, we just report ANOVA results, no post hocs for these.
 #descriptives
 desc_temp <- rot_training_ana_blocks %>%
   group_by(exp, block_num) %>%
-  summarize(mean_dev = mean(angular_dev_mean), 
+  summarise(mean_dev = mean(angular_dev_mean), 
             sd = sd(angular_dev_mean), 
             ci = vector_confint(angular_dev_mean),
-            n = n())
+            n = n(), .groups = "drop")
 
 desc_temp
 ```
@@ -607,10 +620,10 @@ p <- p +
 # Additional Analyses
 ## Rebounds
 
-We will start with the baseline-corrected reach data (rot_training).
+We start with the baseline-corrected reach data (rot_training).
 ```{r}
 # make a list of rebound trials
-rebound_trials <- c(112, 133, 178, 199, 244, 265, 310) #block 4 only has 1 rebound trial
+rebound_trials <- c(46, 67, 112, 133, 178, 199, 244) #block 4 only has 1 rebound trial
 pre_reb_trials <- rebound_trials - 1
 
 rot_rebounds <- rot_training %>%
@@ -634,10 +647,10 @@ rot_rebounds$trial_num_cont <- as.factor(rot_rebounds$trial_num_cont)
 #descriptives
 desc_temp <- rot_rebounds %>%
   group_by(exp, trial_num_cont) %>%
-  summarize(mean_dev = mean(angular_dev), 
+  summarise(mean_dev = mean(angular_dev), 
             sd = sd(angular_dev), 
             ci = vector_confint(angular_dev),
-            n = n())
+            n = n(), .groups = "drop")
 desc_temp$trial_num_cont <- as.factor(desc_temp$trial_num_cont)
 rot_rebounds$trial_num_cont <- as.factor(rot_rebounds$trial_num_cont)
 
@@ -660,10 +673,10 @@ p
 #descriptives
 desc_temp <- rot_rebounds %>%
   group_by(exp, trial_num_cont) %>%
-  summarize(mean_decay = mean(decay), 
+  summarise(mean_decay = mean(decay), 
             sd = sd(decay), 
             ci = vector_confint(decay),
-            n = n())
+            n = n(), .groups = "drop")
 
 p <- desc_temp %>%
   ggplot(aes(trial_num_cont, mean_decay, colour = exp)) +
@@ -718,7 +731,7 @@ Plot the different explicit measures
 #descriptives
 desc_temp <- combined_data %>%
   group_by(exp, block_num) %>%
-  summarize(measured_exp_mean = mean(measured_exp), 
+  summarise(measured_exp_mean = mean(measured_exp), 
             measured_exp_sd = sd(measured_exp), 
             measured_exp_ci = vector_confint(measured_exp),
             inferred_exp_mean = mean(inferred_exp), 
