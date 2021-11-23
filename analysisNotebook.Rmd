@@ -82,11 +82,12 @@ omnibus_nocur <- read_delim("data/omnibus/omnibus_nocur.csv",
                                              rotation_angle = col_factor(),
                                              targetangle_deg = col_factor(),
                                              ppt = col_factor(),
-                                             stratuse = col_factor(),
+                                             strat_use = col_factor(),
                                              exp = col_factor()))
 
 omnibus_nocur <- omnibus_nocur %>% 
-  filter(exp != "abruptExp", exp != "reintroExp") 
+  filter(exp != "abruptExp", exp != "reintroExp") %>%
+  rename(strat_use = stratuse)
   
 # recode exp groups
 omnibus_nocur$exp <- recode_factor(omnibus_nocur$exp, "longAbruptExp" = "abrupt",
@@ -183,7 +184,7 @@ Now we will get a mean for each participant
 
 ```{r}
 nocur_summary <- rot_nocur %>%
-  group_by(exp, ppt, rotation_angle, block_num, stratuse) %>%
+  group_by(exp, ppt, rotation_angle, block_num, strat_use) %>%
   summarise(mean_devs = mean(angular_dev), 
             sd = sd(angular_dev), 
             ci = vector_confint(angular_dev),
@@ -199,7 +200,7 @@ We do a 3x4x2 mixed ANOVA (experiment x block x strategy use)
 ```{r}
 #performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
 no_cur_ANOVA <- nocur_summary %>% 
-  filter(stratuse == '0') %>%
+  filter(strat_use == '0') %>%
   ezANOVA(wid = ppt,
         dv = mean_devs, 
         within = .(block_num),
@@ -221,7 +222,7 @@ To test whether the method of perturbation onset effected implicit learning, we 
 1. Initial measures
 ```{r}
 wo_strat_init_blocks <- nocur_summary %>% 
-  filter(stratuse == '0') %>% #only the implicit aftereffects
+  filter(strat_use == '0') %>% #only the implicit aftereffects
   filter((exp == 'stepped' & block_num == '4') | #only the 5 blocks (1 and 4)
          (exp == 'abrupt' & block_num == '1') |
          (exp == 'ramped' & block_num == '1'))
@@ -268,7 +269,7 @@ bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "abrupt", "mean_devs")
 
 ```{r}
 wo_strat_final_blocks <- nocur_summary %>% 
-  filter(stratuse == '0') %>% #only the implicit aftereffects
+  filter(strat_use == '0') %>% #only the implicit aftereffects
   filter(block_num == '4') # only comparing block 4 data
 ```
 ```{r}
@@ -313,7 +314,7 @@ First, we need to actually calculate strategy
 
 nocur_summary_wide <- nocur_summary %>%
   select(-sd, -ci) %>%
-  pivot_wider(names_from = "stratuse", 
+  pivot_wider(names_from = "strat_use", 
               values_from = mean_devs, 
               names_prefix = "strat_") %>%
   mutate(strategy = strat_1 - strat_0)
@@ -417,22 +418,26 @@ omnibus_training <- read_delim("data/omnibus/omnibus_training.csv",
                                              trial_num = col_double(),
                                              rotation_angle = col_factor(),
                                              targetangle_deg = col_factor(),
+                                             strat_use = col_factor(),
                                              ppt = col_factor(),
                                              exp = col_factor()))
 
 omnibus_training <- omnibus_training %>% 
   filter(exp != "abruptExp", exp != 'reintroExp') %>%
-  select(-trial_num)
+  select(-selected, -maxV) %>%
+  rename(strat_use = stratUse)
 
 # recode exp groups
 omnibus_training$exp <- recode_factor(omnibus_training$exp, "longAbruptExp" = "abrupt",
                                    "gradualExp" = "ramped",
                                    "stepwiseExp" = "stepped")
+```
 
-
+Baseline correction
+```{r}
 # isolate rotated and bl
-rot_training <- filter(omnibus_training, rotation_angle != 0)
-bl_training <- filter(omnibus_training, rotation_angle == 0)
+rot_training <- filter(omnibus_training, ((exp == "abrupt" | exp == "stepped") & rotation_angle != 0) | (exp == "ramped" & task_num >= 14 ))
+bl_training <- filter(omnibus_training, ((exp == "abrupt" | exp == "stepped") & rotation_angle == 0) | (exp == "ramped" & task_num < 14 ))
 
 # apply baseline correction ()
 rot_training$temp <- select(rot_training, targetangle_deg, ppt, angular_dev) %>%
@@ -547,13 +552,81 @@ bayes_t_test(training_final_trial_set, "exp", "stepped", "ramped", "angular_dev_
 bayes_t_test(training_final_trial_set, "exp", "stepped", "abrupt", "angular_dev_mean")
 ```
 
+----
+# Combining all data
+
+We need to combine both omnibus dataframes
+```{r}
+# stitch the two together
+rot_training_t <- rot_training %>% 
+  select(-trial_set, -trial_num_cont) %>%
+  arrange(exp)
+
+rot_nocur_t <- rot_nocur %>%
+  arrange(exp, ppt, task_num)
+
+# making continuous trial numbers
+trials_abr_step_train <- c(1:45, 64:84, 103:147, 166:186, 205:249, 268:288, 307:351, 370:390) #these are all the training trials
+trials_ramp_train <- c(1:66, 85:129, 148:168, 187:231, 250:270, 289:333, 352:372) # the numbers are different for the ramped experiment (missing a block of nocur)
+
+# repeat these based on the number of ppt and concat
+reps_abr_train <- rep(trials_abr_step_train, length(unique(filter(rot_training_t, exp == 'abrupt')$ppt)))
+reps_step_train <- rep(trials_abr_step_train, length(unique(filter(rot_training_t, exp == 'stepped')$ppt)))
+reps_ramp_train <- rep(trials_ramp_train, length(unique(filter(rot_training_t, exp == 'ramped')$ppt))) + 18
+reps_train <- c(reps_abr_train, reps_ramp_train, reps_step_train)
+
+# add the column to rot_training_t
+rot_training_t$trial_num_cont <- reps_train
 
 
+# making continuous trial numbers for nocursors
+# get the missing trials (nocusors)
+temp <- 1:408
+reps_abr_nc <- rep(temp[!(temp %in% trials_abr_step_train)], length(unique(filter(rot_training_t, exp == 'abrupt')$ppt)))
+reps_step_nc <- rep(temp[!(temp %in% trials_abr_step_train)], length(unique(filter(rot_training_t, exp == 'stepped')$ppt)))
+
+temp <- 1:390
+reps_ramp_nc <- rep( temp[!(temp %in% trials_ramp_train)], length(unique(filter(rot_training_t, exp == 'ramped')$ppt))) + 18
+reps_nc <- c(reps_abr_nc, reps_ramp_nc, reps_step_nc)
+
+# add to rot_nocur_t
+rot_nocur_t$trial_num_cont <- reps_nc
+  
+  
+rot_all <- bind_rows(rot_training_t, rot_nocur_t) %>%
+  arrange(exp, ppt, trial_num_cont)
+
+# make a summary df
+rot_all_summary <- rot_all %>%
+  group_by(exp, trial_num_cont, strat_use) %>%
+  summarise(mean = mean(angular_dev),
+            sd = sd(angular_dev), 
+            ci = vector_confint(angular_dev),
+            n = n(), .groups = "drop")
+rot_all_summary$strat_use <- as.factor(rot_all_summary$strat_use)
+```
 
 
+plot
+```{r}
+p <- rot_all %>% 
+  ggplot(aes(trial_num_cont, angular_dev, colour = exp)) +
+  geom_point(alpha = 0.03)+
+  geom_point(data = rot_all_summary, aes(y = mean, shape = strat_use)) +
+  scale_shape_manual(values=c(20, 2))+
+  # stat_summary(fun=mean, geom="point", size=3, color="red") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+  scale_y_continuous(limits = c(-20, 90)) +
+  ggtitle("All data")
+
+p
+
+# ggsave(p, height = 9, width = 16, device = "svg", filename = "data/paper_figs/all_reaches.svg")
+```
 
 ----
-
+# Older reach training analysis
 We use the blocks of interest
 ```{r}
 rot_training_ana_blocks <- rot_training %>%
@@ -729,7 +802,7 @@ pre_reb_devs <- pre_reb_devs %>%
   
 per_ppt_format <- nocur_summary %>%
   select(-sd, -ci, -n) %>% #getting rid of sanity check variables
-  spread(stratuse, mean_devs) %>%
+  spread(strat_use, mean_devs) %>%
   rename(without_strat_dev = '0'  , with_strat_dev = '1')
 
 combined_data <- left_join(per_ppt_format, pre_reb_devs, by = c("ppt", "block_num")) %>%

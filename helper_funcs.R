@@ -120,7 +120,7 @@ add_block_num <- function(df){
   # given a df with experiment and block number
   # these if statements are repetitive at the moment. I've kept them in case different trials need to be isolated for different experiment protocols
   x <- as.double(df[1])
-  if(df[2] == "gradualExp"){
+  if(df[2] == "ramped"){
     if (x <= 69)
       return(0)
     else if (x >= 127 & x <= 132)
@@ -134,7 +134,7 @@ add_block_num <- function(df){
     else
       return(10)
   }
-  else if(df[2] == "stepwiseExp") {
+  else if(df[2] == "stepped") {
     if (x <= 69)
       return(0)
     else if (x >= 127 & x <= 132)
@@ -168,7 +168,7 @@ add_trial_set <- function(df){
   # given a df with experiment and trial sets
   # these if statements are repetitive at the moment. I've kept them in case different trials need to be isolated for different experiment protocols
   x <- as.double(df[1])
-  if(df[2] == "gradualExp"){
+  if(df[2] == "ramped"){
     if (x <= 69)
       return(1) # first block
     else if (x >= 127 & x <= 129)
@@ -178,7 +178,7 @@ add_trial_set <- function(df){
     else
       return(10)
   }
-  else if(df[2] == "stepwiseExp") {
+  else if(df[2] == "stepped") {
     if (x <= 69)
       return(1)
     else if (x >= 307 & x <= 309)

@@ -190,16 +190,16 @@ makeTrainingOmnibus <- function(){
                      'targetdistance_percmax')] <- NULL
   
   # save the omnibus df
-  fwrite(omnibus_training, file = "data/omnibus/omnibus_training.csv")
+  fwrite(omnibus_training, file = "data/omnibus/omnibus_training_t.csv")
 }
 
 ## ----
-## Run the functions
+## Run the functions this needs fixing..
 library(future)
 plan(multiprocess)
 
 #NOTE: %<-% is a "future assignment"
-tempjob1 %<-% makeNoCurOmnibus()
+# tempjob1 %<-% makeNoCurOmnibus()
 tempjob2 %<-% makeTrainingOmnibus()
 
 temp.list <- lapply(ls(pattern = "temp"), get)
