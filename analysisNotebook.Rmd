@@ -14,7 +14,6 @@ output:
 ```{r setup, include=FALSE, warning=FALSE}
 rm(list = ls())      # clean environment
 
-source("analysisFunctions.R")
 source("helper_funcs.R")
 library(data.table)
 library(tidyverse)
@@ -79,10 +78,10 @@ omnibus_nocur <- read_delim("data/omnibus/omnibus_nocur.csv",
                             col_types = cols(.default = col_double(), 
                                              task_num = col_double(),
                                              trial_num = col_double(),
-                                             rotation_angle = col_factor(),
+                                             rotation_angle = col_double(),
                                              targetangle_deg = col_factor(),
                                              ppt = col_factor(),
-                                             strat_use = col_factor(),
+                                             stratuse = col_factor(),
                                              exp = col_factor()))
 
 omnibus_nocur <- omnibus_nocur %>% 
@@ -175,7 +174,6 @@ block_num <- function(df){
 
 rot_nocur$block_num <- apply(rot_nocur[ , c("task_num", "exp")], 1, block_num)
 rot_nocur$block_num <- factor(rot_nocur$block_num, levels=c("1", "2", "3", "4"))
-rot_nocur$rotation_angle <- factor(rot_nocur$rotation_angle, levels=c("-15", "-30", "-45", "-60"))
   
 ```
 
@@ -184,7 +182,7 @@ Now we will get a mean for each participant
 
 ```{r}
 nocur_summary <- rot_nocur %>%
-  group_by(exp, ppt, rotation_angle, block_num, strat_use) %>%
+  group_by(exp, ppt, block_num, strat_use) %>%
   summarise(mean_devs = mean(angular_dev), 
             sd = sd(angular_dev), 
             ci = vector_confint(angular_dev),
@@ -402,6 +400,53 @@ bayes_t_test(strat_final_blocks, "exp", "stepped", "ramped", "strategy")
 bayes_t_test(strat_final_blocks, "exp", "stepped", "abrupt", "strategy")
 ```
 
+3. Compare blocks 1 and 4 for abrupt and gradual data
+
+
+```{r}
+strat_betwn_block <- nocur_summary_wide %>% 
+  filter(block_num == '4' | block_num =='1', exp == 'abrupt' | exp == 'ramped')
+
+plot_desc_group_density(strat_betwn_block, "block_num", "strategy", subgroup = "exp", title = "C. Strategy Use blocks 1 v 4")
+```
+
+```{r}
+anovaBF(strategy ~ exp * block_num, data = strat_betwn_block, progress=FALSE)
+```
+```{r}
+btwn_block_strat_ANOVA <- aov(strategy ~ exp * block_num, data = strat_betwn_block)
+print(summary(btwn_block_strat_ANOVA), digits = 6)
+eta_squared(btwn_block_strat_ANOVA)
+TukeyHSD(btwn_block_strat_ANOVA)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ---
@@ -416,9 +461,9 @@ omnibus_training <- read_delim("data/omnibus/omnibus_training.csv",
                             col_types = cols(.default = col_double(), 
                                              task_num = col_double(),
                                              trial_num = col_double(),
-                                             rotation_angle = col_factor(),
+                                             rotation_angle = col_double(),
                                              targetangle_deg = col_factor(),
-                                             strat_use = col_factor(),
+                                             stratUse = col_factor(),
                                              ppt = col_factor(),
                                              exp = col_factor()))
 
@@ -519,7 +564,7 @@ training_final_trial_set <- rot_training_trial_sets %>%
 
 ```{r}
 #plot
-plot_desc_group_density(training_final_trial_set, "exp", "angular_dev_mean", title = "BLock 4 Adaptation")
+plot_desc_group_density(training_final_trial_set, "exp", "angular_dev_mean", title = "Block 4 Adaptation")
 ```
 
 ```{r}
@@ -594,7 +639,8 @@ rot_nocur_t$trial_num_cont <- reps_nc
   
   
 rot_all <- bind_rows(rot_training_t, rot_nocur_t) %>%
-  arrange(exp, ppt, trial_num_cont)
+  arrange(exp, ppt, trial_num_cont) %>%
+  mutate(norm_angular_dev = angular_dev / rotation_angle * -1)
 
 # make a summary df
 rot_all_summary <- rot_all %>%
@@ -604,15 +650,17 @@ rot_all_summary <- rot_all %>%
             ci = vector_confint(angular_dev),
             n = n(), .groups = "drop")
 rot_all_summary$strat_use <- as.factor(rot_all_summary$strat_use)
+
+
 ```
 
 
 plot
 ```{r}
 p <- rot_all %>% 
-  ggplot(aes(trial_num_cont, angular_dev, colour = exp)) +
-  geom_point(alpha = 0.03)+
-  geom_point(data = rot_all_summary, aes(y = mean, shape = strat_use)) +
+  ggplot(aes(trial_num_cont, angular_dev, colour = exp, shape = strat_use)) +
+  geom_point(alpha = 0.04)+
+  geom_point(data = rot_all_summary, aes(y = mean)) +
   scale_shape_manual(values=c(20, 2))+
   # stat_summary(fun=mean, geom="point", size=3, color="red") +
   theme_minimal() +
@@ -624,6 +672,73 @@ p
 
 # ggsave(p, height = 9, width = 16, device = "svg", filename = "data/paper_figs/all_reaches.svg")
 ```
+
+Repeat for normalized angular deviations
+```{r}
+rot_norm_summary <- rot_all %>%
+  group_by(exp, trial_num_cont, strat_use) %>%
+  summarise(mean = mean(norm_angular_dev),
+            sd = sd(norm_angular_dev), 
+            ci = vector_confint(norm_angular_dev),
+            n = n(), .groups = "drop")
+rot_norm_summary$strat_use <- as.factor(rot_norm_summary$strat_use)
+```
+plot
+```{r}
+p <- rot_all %>% 
+  ggplot(aes(trial_num_cont, norm_angular_dev, colour = exp, shape = strat_use)) +
+  geom_point(alpha = 0.04)+
+  geom_point(data = rot_norm_summary, aes(y = mean)) +
+  scale_shape_manual(values=c(20, 2))+
+  # stat_summary(fun=mean, geom="point", size=3, color="red") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+  scale_y_continuous(limits = c(-0.5, 1.5)) +
+  ggtitle("All data")
+
+p
+
+# ggsave(p, height = 9, width = 16, device = "svg", filename = "data/paper_figs/all_reaches_norm.svg")
+```
+
+
+# Additional analysis
+Bayesian analysis if block 4 implicit aftereffects using the rethinking package
+```{r}
+library(rethinking)
+head(wo_strat_final_blocks)
+```
+Here is how our model would look:
+$$
+\begin{aligned}
+I_i \;&\sim\; Normal(\mu_i, \sigma) \\
+\mu_i \;&=\; \alpha_{exp[i]} \\
+\alpha_j \;&\sim\; Normal(15, 5) \;\;\;\; for \; j = 1,2,3 \\
+\sigma \;&\sim\; Exponential(1)
+\end{aligned}
+
+$$
+
+```{r}
+wo_strat_final_blocks$exp_id <- as.integer(wo_strat_final_blocks$exp)
+
+m_imp_b4 <-quap(
+  alist(
+    mean_devs ~ dnorm(mu,sigma),
+    mu <- a[exp_id],
+    a[exp_id] ~ dnorm(15,5),
+    sigma ~ dexp(1)
+    ), data = wo_strat_final_blocks)
+
+labels <-paste("a[",1:3,"]:",levels(wo_strat_final_blocks$exp),sep="")
+plot(precis(m_imp_b4, depth=2, pars="a"), labels=labels, 
+     xlab="implicit reach aftereffects")
+```
+```{r}
+precis( extract.samples(m_imp_b4),depth=2)
+```
+
+
 
 ----
 # Older reach training analysis
@@ -729,7 +844,7 @@ rot_rebounds$trial_num_cont <- as.factor(rot_rebounds$trial_num_cont)
 
 #descriptives
 desc_temp <- rot_rebounds %>%
-  group_by(exp, trial_num_cont) %>%
+  group_by(exp, trial_num_cont, NULL) %>%
   summarise(mean_dev = mean(angular_dev), 
             sd = sd(angular_dev), 
             ci = vector_confint(angular_dev),
@@ -849,4 +964,10 @@ p <- desc_temp %>%
 p
 ```
 Measured explicit learning = markedly lower
+
+# Plots for print
+```{r}
+plot_nice_group_density(training_final_trial_set, exp, angular_dev_mean, title = "Block 4 Adaptation")
+```
+
 

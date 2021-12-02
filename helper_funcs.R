@@ -1,9 +1,39 @@
-library(foreign)     # to load SPSS file
 library(psych)       # for descriptives
 library(effsize)     # for Cohen's d
 library(BayesFactor) # to compute Bayes factors
 library(tidyverse)
+library(data.table)
 
+# ---- 
+# Analysis
+# input = a vector
+# works well with group_by %>% summarise()
+vector_confint <- function(vector, interval = 0.95) {
+  # Standard deviation of sample
+  vec_sd <- sd(vector, na.rm = TRUE)
+  # Sample size
+  n <- length(vector)
+  # Mean of sample
+  vec_mean <- mean(vector, na.rm = TRUE)
+  # Error according to t distribution
+  error <- qt((interval + 1)/2, df = n - 1) * vec_sd / sqrt(n)
+  # Confidence interval as a vector
+  # result <- c("lower" = vec_mean - error, "upper" = vec_mean + error)
+  return(error)
+}
+
+# get the magnitude (euclidian normal) of a vector (this is faster than R's built in norm)
+norm_vec <- function(vector){sqrt(crossprod(vector))}
+
+# load data using fread
+loadData <- function(path){
+  data_df <- fread(path, stringsAsFactors = TRUE)
+  
+  return(data_df)
+}
+
+
+# Plotting functions
 plot_desc_group_density <- function(df, group, y, subgroup = NULL, title = "Distributions within Groups"){
   # plot some density things for visualizing data in groups
   # group, and y are strings
@@ -12,25 +42,102 @@ plot_desc_group_density <- function(df, group, y, subgroup = NULL, title = "Dist
       ggplot(aes(.data[[group]],.data[[y]])) +
       geom_violin(aes(fill=.data[[group]]), alpha=0.2, draw_quantiles = c(.25, .5, .75), scale = "count") +
       geom_beeswarm(alpha = 0.5) +
-      stat_summary(fun=mean, geom="point", size=3, color="red") +
-      theme_minimal() +
-      theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
-      ggtitle(title)
+      stat_summary(fun=mean, geom="point", size=3, color="red") 
   }
   else{
     p <- df %>% 
       ggplot(aes(.data[[group]],.data[[y]], colour = .data[[subgroup]])) +
       geom_beeswarm(dodge.width = .9, alpha = 0.3) +
-      geom_violin(aes(fill=.data[[subgroup]]), alpha=0.2, draw_quantiles = c(.25, .5, .75), scale = "count") +
-      theme_minimal() +
-      theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
-      ggtitle(title)
+      geom_violin(aes(fill=.data[[subgroup]]), alpha=0.2, draw_quantiles = c(.25, .5, .75), scale = "count") 
   }
+  
+  p <- p + 
+    theme_minimal() +
+    theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+    ggtitle(title)
+  
+  return(p)
+}
+
+plot_nice_group_density <- function(df, group, y, subgroup = NULL, title = "Distributions within Groups"){
+  # plot some density things for visualizing data in groups
+  # group, and y are strings
+  # plot some density things for visualizing data in groups
+  # group, and y are strings
+  group_tidy <- enquo(group)
+  y_tidy <- enquo(y)
+  subgroup_tidy <- enquo(subgroup)
+  
+  desc_temp <- df %>%
+    group_by(!!group_tidy, !!subgroup_tidy) %>%
+    summarise(means = mean(!!y_tidy), 
+              sd = sd(!!y_tidy), 
+              ci = vector_confint(!!y_tidy),
+              n = n(), .groups = "drop")
+  
+  if (is.null(subgroup)){
+    p <- df %>% 
+      ggplot(aes(!!group_tidy, !!y_tidy, colour = !!group_tidy)) +
+      geom_beeswarm(alpha = 0.2) +
+      geom_linerange(data = desc_temp,
+                     aes(!!group_tidy, means,
+                         ymin = means - ci, ymax = means + ci),
+                     lwd = 5, alpha = 0.4,
+                     position = position_dodge(width = .6)) +
+      geom_point(data = desc_temp,
+                 aes(y = means),
+                 size = 5, alpha = 0.6,
+                 position = position_dodge(width = .6))
+  }
+  else{
+    p <- df %>% 
+      ggplot(aes(!!group_tidy, !!y_tidy, colour = !!subgroup_tidy)) +
+      geom_beeswarm(dodge.width = .6, alpha = 0.2) + 
+      geom_linerange(data = desc_temp,
+                   aes(!!group_tidy, means, colour = !!subgroup_tidy,
+                       ymin = means - ci, ymax = means + ci),
+                   lwd = 5, alpha = 0.4,
+                   position = position_dodge(width = .6))
+  }
+  
+  p <- p + 
+    theme_minimal() +
+    theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+    ggtitle(title)
   
   return(p)
 }
 
 
+# p <- rot_training_ana_blocks %>%
+#   ggplot(aes(block_num, angular_dev_mean, colour = exp)) +
+#   ggtitle("Training over blocks and experiments") +
+#   geom_beeswarm(dodge.width = 0.6, alpha = 0.2) +
+#   geom_point(data = desc_temp,
+#              aes(block_num, mean_dev, colour = exp),
+#              size = 5, alpha = 0.6, 
+#              position = position_dodge(width = .6)) + 
+#   geom_linerange(data = desc_temp,
+#                  aes(block_num, mean_dev, colour = exp, 
+#                      ymin = mean_dev - ci, ymax = mean_dev + ci), 
+#                  lwd = 5, alpha = 0.4, 
+#                  position = position_dodge(width = .6)) +
+#   scale_y_continuous(limits = c(-10, 75), 
+#                      breaks = c(0, 15, 30, 45, 60), 
+#                      name = "hand deviation (°)") +
+#   scale_x_discrete(name = "block", 
+#                    labels = c("Initial", '1', '2', '3', '4')) +
+#   theme_minimal() +
+#   theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+#   scale_colour_manual(values=c( "#d40000", "#084594", "#8365b5"), 
+#                       breaks=c("stepped", "abrupt", "ramped"),
+#                       labels=c( "stepwise", "abrupt", "gradual")) +
+#   NULL
+
+
+
+# ----
+# from paper (find)
 bayes_t_test <- function(df, group_title, group1, group2, dv){
   # bayes t-test
   
@@ -80,7 +187,7 @@ bayes_t_test <- function(df, group_title, group1, group2, dv){
   return (sprintf("BF01: %.3f, P(D|H0): %.3f, P(D|H1): %.3f, Groups: %s vs %s", res.bayes$BF01, null, alt, group1, group2))
 }
 
-#####
+##### 
 # No Cursors
 
 apply_nocur_blcorrection <- function(rot_df_row, bl_df){
