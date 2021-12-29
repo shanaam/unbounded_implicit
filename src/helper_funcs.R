@@ -108,34 +108,6 @@ plot_nice_group_density <- function(df, group, y, subgroup = NULL, title = "Dist
   return(p)
 }
 
-
-# p <- rot_training_ana_blocks %>%
-#   ggplot(aes(block_num, angular_dev_mean, colour = exp)) +
-#   ggtitle("Training over blocks and experiments") +
-#   geom_beeswarm(dodge.width = 0.6, alpha = 0.2) +
-#   geom_point(data = desc_temp,
-#              aes(block_num, mean_dev, colour = exp),
-#              size = 5, alpha = 0.6, 
-#              position = position_dodge(width = .6)) + 
-#   geom_linerange(data = desc_temp,
-#                  aes(block_num, mean_dev, colour = exp, 
-#                      ymin = mean_dev - ci, ymax = mean_dev + ci), 
-#                  lwd = 5, alpha = 0.4, 
-#                  position = position_dodge(width = .6)) +
-#   scale_y_continuous(limits = c(-10, 75), 
-#                      breaks = c(0, 15, 30, 45, 60), 
-#                      name = "hand deviation (°)") +
-#   scale_x_discrete(name = "block", 
-#                    labels = c("Initial", '1', '2', '3', '4')) +
-#   theme_minimal() +
-#   theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
-#   scale_colour_manual(values=c( "#d40000", "#084594", "#8365b5"), 
-#                       breaks=c("stepped", "abrupt", "ramped"),
-#                       labels=c( "stepwise", "abrupt", "gradual")) +
-#   NULL
-
-
-
 # ----
 # from paper (find)
 bayes_t_test <- function(df, group_title, group1, group2, dv){
