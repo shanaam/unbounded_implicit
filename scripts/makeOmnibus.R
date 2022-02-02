@@ -29,7 +29,14 @@ library(tidyverse)
 # function for making the omnibus thing
 
 applyAtan2 <- function(df){
-  return(((atan2(df[2] - df[4], df[1] - df[3]) * 180/pi) %% 360) - df[5]) # atan2(y,x) -- atan2 takes y first
+  x = df[1] - df[3]
+  y = df[2] - df[4]
+  ang = df[5] * -1 *pi/180 #convert to rads
+  
+  x_r = (x*cos(ang)) - (y*sin(ang))
+  y_r = (x*sin(ang)) + (y*cos(ang))
+  
+  return(atan2(y_r, x_r) * 180/pi) # atan2(y,x) -- atan2 takes y first
 }
 
 applyStratUse <- function(taskName){
@@ -128,7 +135,7 @@ makeNoCurOmnibus <- function(){
                      'targetdistance_percmax')] <- NULL
   
   # save the omnibus df
-  fwrite(omnibus_nocur, file = "data/omnibus/omnibus_nocur.csv")
+  fwrite(omnibus_nocur, file = "data/omnibus/omnibus_nocur_t.csv")
   
 }
 
