@@ -207,7 +207,7 @@ plan(multiprocess)
 
 #NOTE: %<-% is a "future assignment"
 # tempjob1 %<-% makeNoCurOmnibus()
-tempjob2 %<-% makeTrainingOmnibus()
+# tempjob2 %<-% makeTrainingOmnibus()
 
 temp.list <- lapply(ls(pattern = "temp"), get)
 

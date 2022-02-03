@@ -6,21 +6,21 @@ library(tidyverse)
 library(ggbeeswarm)
 
 
-tosave_nocur <- nocur_summary_blocks %>% 
-  filter(exp == "stepwiseExp" | exp == "longAbruptExp")
+# tosave_nocur <- nocur_summary_blocks %>% 
+#   filter(exp == "stepwiseExp" | exp == "longAbruptExp"| exp == "gradualExp")
 
 
-tosave_adaptation_short <- training_summary %>% 
-  filter(exp == "stepwiseExp" | exp == "longAbruptExp")
+
+# stepwise only
+
+tosave_adaptation_long <- rot_training_t %>% 
+  filter(exp == "stepped") %>%
+  select(trial_num_cont, rotation_angle, targetangle_deg, ppt, exp, angular_dev)
 
 
-tosave_adaptation_long <- rot_training %>% 
-  filter(exp == "stepwiseExp" | exp == "longAbruptExp") %>%
-  select(trial_num, trial_num_cont, rotation_angle, targetangle_deg, ppt, exp, angular_dev)
-tosave_adaptation_long$trial_num_cont <- tosave_adaptation_long$trial_num_cont - 66 #fix trial nums for plotting
-tosave_adaptation_long$trial_num <- tosave_adaptation_long$trial_num - 99
+tosave_nocur_long <- rot_nocur_t %>% 
+  filter(exp == "stepped") %>%
+  select(trial_num_cont, rotation_angle, targetangle_deg, strat_use, ppt, exp, angular_dev)
 
-
-fwrite(tosave_nocur, file = "data/shanaa_AE_summaries.csv")
-fwrite(tosave_adaptation_short, file = "data/shanaa_Adapt_short.csv")
-fwrite(tosave_adaptation_long, file = "data/shanaa_Adapt_long.csv")
+fwrite(tosave_nocur_long, file = "data/shanaa_step_nocursor.csv")
+fwrite(tosave_adaptation_long, file = "data/shanaa_step_adaptation.csv")

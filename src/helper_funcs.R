@@ -1,8 +1,9 @@
 library(psych)       # for descriptives
 library(effsize)     # for Cohen's d
+library(data.table)
 library(BayesFactor) # to compute Bayes factors
 library(tidyverse)
-library(data.table)
+
 
 # ---- 
 # Analysis
