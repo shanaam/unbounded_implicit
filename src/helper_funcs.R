@@ -279,3 +279,30 @@ add_trial_set <- function(df){
       return(10)
   }
 }
+
+detailed_block_w_trial_num <- function(trial_num){
+  if (trial_num <= 63){
+    return(1.1)
+  }
+  else if (trial_num <= 102){
+    return(1.2)
+  }
+  else if (trial_num <= 165){
+    return(2.1)
+  }
+  else if (trial_num <= 204){
+    return(2.2)
+  }
+  else if (trial_num <= 267){
+    return(3.1)
+  }
+  else if (trial_num <= 306){
+    return(3.2)
+  }
+  else if (trial_num <= 369){
+    return(4.1)
+  }
+  else if (trial_num <= 408){
+    return(4.2)
+  }
+}

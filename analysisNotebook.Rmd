@@ -627,6 +627,9 @@ reps_train <- c(reps_abr_train, reps_ramp_train, reps_step_train)
 # add the column to rot_training_t
 rot_training_t$trial_num_cont <- reps_train
 
+# log the reach_type
+rot_training_t$reach_type <- "reach"
+
 
 # making continuous trial numbers for nocursors
 # get the missing trials (nocusors)
@@ -640,11 +643,16 @@ reps_nc <- c(reps_abr_nc, reps_ramp_nc, reps_step_nc)
 
 # add to rot_nocur_t
 rot_nocur_t$trial_num_cont <- reps_nc
+rot_nocur_t$reach_type <- "nocursor"
   
   
 rot_all <- bind_rows(rot_training_t, rot_nocur_t) %>%
   arrange(exp, ppt, trial_num_cont) %>%
   mutate(norm_angular_dev = angular_dev / rotation_angle * -1)
+
+# add detailed blocks (1.1, 1.2, 2.1, ..., 4.2)
+rot_all$block_num_detailed <- as.factor(apply(array(rot_all$trial_num_cont), 1, FUN = detailed_block_w_trial_num))
+rot_all$strat_use <- as.factor(rot_all$strat_use)
 
 # make a summary df
 rot_all_summary <- rot_all %>%
@@ -653,8 +661,6 @@ rot_all_summary <- rot_all %>%
             sd = sd(angular_dev), 
             ci = vector_confint(angular_dev),
             n = n(), .groups = "drop")
-rot_all_summary$strat_use <- as.factor(rot_all_summary$strat_use)
-
 
 ```
 
@@ -685,7 +691,6 @@ rot_norm_summary <- rot_all %>%
             sd = sd(norm_angular_dev), 
             ci = vector_confint(norm_angular_dev),
             n = n(), .groups = "drop")
-rot_norm_summary$strat_use <- as.factor(rot_norm_summary$strat_use)
 ```
 plot
 ```{r}
@@ -704,6 +709,139 @@ p
 
 # ggsave(p, height = 9, width = 16, device = "svg", filename = "data/paper_figs/all_reaches_norm.svg")
 ```
+
+
+# Slopes of no-cusor reaches over time
+Make some summary data sets
+```{r}
+#start with the no cursor data
+rot_nocur <- rot_all %>%
+  filter(reach_type == "nocursor")
+
+rot_nocur_trial_summary <- rot_nocur %>%
+  group_by(exp, block_num_detailed, trial_num_cont, strat_use) %>%
+  summarise(mean = mean(angular_dev),
+            sd = sd(angular_dev), 
+            ci = vector_confint(angular_dev),
+            n = n(), .groups = "drop")
+
+rot_nocur_detailed_block_summary <-  rot_nocur %>%
+  group_by(exp, ppt, block_num_detailed, strat_use) %>%
+  summarise(angular_dev_temp = mean(angular_dev),
+            sd = sd(angular_dev), 
+            ci = vector_confint(angular_dev),
+            n = n(), .groups = "drop") %>%
+  group_by(exp, block_num_detailed, strat_use) %>%
+  summarise(mean_angular_dev = mean(angular_dev_temp),
+            sd = sd(angular_dev_temp), 
+            ci = vector_confint(angular_dev_temp),
+            n = n(), .groups = "drop")
+
+
+```
+Isolate without strategy reaches
+```{r}
+test <- rot_nocur_trial_summary %>%
+  filter(strat_use == 0, block_num_detailed == 1.1, exp == "stepped")
+test = mutate(test, trial = trial_num_cont - min(trial_num_cont) + 1)
+lm.stepped_1.1 <- lm(test$mean ~ test$trial)
+
+# add intercept, slope, fitted values, and r^2 to detailed block summary
+rot_nocur_detailed_block_summary$intercept <- NA
+rot_nocur_detailed_block_summary$slope <- NA
+#rot_nocur_detailed_block_summary$fitted_values <- list(as.numeric(c(1,2,3,4)))
+#rot_nocur_detailed_block_summary$trial_list <- list(as.numeric(c(1,2,3,4)))
+rot_nocur_detailed_block_summary$r_2 <- NA
+rot_nocur_trial_summary$fitted_values <- NA
+rot_nocur_trial_summary$short_trials <- NA
+
+for (strat_use_i in unique(rot_nocur_trial_summary$strat_use)){
+  for (block_num_i in unique(rot_nocur_trial_summary$block_num_detailed)){
+    for (exp_i in unique(rot_nocur_trial_summary$exp)){
+      if (exp_i == "ramped" & block_num_i == "1.1"){
+        next
+      }
+      #isolate df
+      temp <- rot_nocur_trial_summary %>%
+        filter(strat_use == strat_use_i, block_num_detailed == block_num_i, exp == exp_i)
+      # print(c(strat_use_i, block_num_i, exp_i))
+      temp = mutate(temp, trial = trial_num_cont - min(trial_num_cont) + 1)
+      
+      lm_fit <- lm(temp$mean ~ temp$trial)
+      
+      bool_arr <- rot_nocur_detailed_block_summary$strat_use == strat_use_i & 
+                                         rot_nocur_detailed_block_summary$block_num_detailed == block_num_i &
+                                          rot_nocur_detailed_block_summary$exp == exp_i
+      
+      rot_nocur_detailed_block_summary[ bool_arr, ]$intercept <- paste("intercept: ", round(lm_fit$coefficients[1], 2))
+      rot_nocur_detailed_block_summary[ bool_arr, ]$slope <- paste("slope: ", round(lm_fit$coefficients[2], 2))
+      #rot_nocur_detailed_block_summary[ bool_arr, ]$fitted_values <- list(array(lm_fit$fitted.values))
+      #rot_nocur_detailed_block_summary[ bool_arr, ]$trial_list <- list(array(temp$trial_num_cont))
+      rot_nocur_detailed_block_summary[ bool_arr, ]$r_2 <- paste("r_2: ", round(summary(lm_fit)$r.squared, 2))
+      
+      bool_arr <- rot_nocur_trial_summary$strat_use == strat_use_i & 
+                                         rot_nocur_trial_summary$block_num_detailed == block_num_i &
+                                          rot_nocur_trial_summary$exp == exp_i
+      rot_nocur_trial_summary[bool_arr, ]$fitted_values <- array(lm_fit$fitted.values)
+      rot_nocur_trial_summary[bool_arr, ]$short_trials <- temp$trial
+    }
+  }
+}
+```
+
+```{r}
+p <- rot_nocur_trial_summary %>% 
+  ggplot(aes(short_trials, mean, colour = exp, shape = strat_use)) +
+  scale_shape_manual(values=c(20, 2))+
+  # stat_summary(fun=mean, geom="point", size=3, color="red") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
+  ggtitle("All data") +
+  scale_y_continuous(limits = c(-0.5, 70))
+
+
+p <- p + 
+  geom_line(aes(y = fitted_values)) +
+  geom_point(aes( x = short_trials, y = mean), alpha = 0.5) +
+  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "stepped"), 
+            aes(x = 9, y = 40, label = intercept),
+            nudge_y = 0, size = 3, hjust = 0) +
+  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "ramped"), 
+            aes(x = 9, y = 40, label = intercept),
+            nudge_y = 10, size = 3, hjust = 0) +
+  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "abrupt"), 
+            aes(x = 9, y = 40, label = intercept),
+            nudge_y = 20, size = 3, hjust = 0) +
+  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "stepped"), 
+            aes(x = 9, y = 43, label = slope),
+            nudge_y = 0, size = 3, hjust = 0) +
+  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "ramped"), 
+            aes(x = 9, y = 43, label = slope),
+            nudge_y = 10, size = 3, hjust = 0) +
+  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "abrupt"), 
+            aes(x = 9, y = 43, label = slope),
+            nudge_y = 20, size = 3, hjust = 0) +
+  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "stepped"), 
+            aes(x = 9, y = 46, label = r_2),
+            nudge_y = 0, size = 3, hjust = 0) +
+  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "ramped"), 
+            aes(x = 9, y = 46, label = r_2),
+            nudge_y = 10, size = 3, hjust = 0) +
+  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "abrupt"), 
+            aes(x = 9, y = 46, label = r_2),
+            nudge_y = 20, size = 3, hjust = 0) 
+
+p <- p +
+  facet_grid(rows = vars(strat_use), cols = vars(block_num_detailed))
+
+p
+
+ggsave(p, height = 9, width = 16, device = "svg", filename = "data/paper_figs/no_cur_regressions.svg")
+```
+```{r}
+summary(lm.stepped_1.1)
+```
+
 
 
 # Additional analysis
