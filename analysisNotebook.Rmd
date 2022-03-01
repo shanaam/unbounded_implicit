@@ -616,60 +616,12 @@ p <- p +
 
 p
 
-ggsave(p, height = 9, width = 16, device = "svg", filename = "data/paper_figs/no_cur_regressions.svg")
+# ggsave(p, height = 9, width = 16, device = "svg", filename = "data/paper_figs/no_cur_regressions.svg")
 ```
 ```{r}
 summary(lm.stepped_1.1)
 ```
 
-
-
-# Additional analysis
-Bayesian analysis if block 4 implicit aftereffects using the rethinking package
-```{r}
-library(rethinking)
-head(wo_strat_final_blocks)
-```
-Here is how our model would look:
-$$
-\begin{aligned}
-I_i \;&\sim\; Normal(\mu_i, \sigma) \\
-\mu_i \;&=\; \alpha_{exp[i]} \\
-\alpha_j \;&\sim\; Normal(15, 5) \;\;\;\; for \; j = 1,2,3 \\
-\sigma \;&\sim\; Exponential(1)
-\end{aligned}
-
-$$
-
-```{r}
-wo_strat_final_blocks$exp_id <- as.integer(wo_strat_final_blocks$exp)
-
-# set up the model, and quadratic approximation (bunch of exponential distributions used)
-m_imp_b4 <-quap(
-  alist(
-    mean_devs ~ dnorm(mu,sigma),
-    mu <- a[exp_id],
-    a[exp_id] ~ dnorm(15,5),
-    sigma ~ dexp(1)
-    ), data = wo_strat_final_blocks)
-
-labels <- c("sigma", paste("a[",1:3,"]:",levels(wo_strat_final_blocks$exp),sep=""))
-
-# rename for better behaviour with ggplot
-m_imp_b4_posterior <-  as_tibble(precis( extract.samples(m_imp_b4),depth=2, pars = "a")) %>%
-  select(-histogram) %>%
-  rename( p5.5 = '5.5%', p94.5 = '94.5%')
-m_imp_b4_posterior$labels <- labels
-
-#plot
-ggplot(m_imp_b4_posterior, aes(x = labels, y = mean)) +
-  geom_point() +
-  geom_linerange(aes(ymin = p5.5, ymax = p94.5))
-  
-```
-```{r}
-m_imp_b4_posterior
-```
 
 
 
