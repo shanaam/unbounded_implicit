@@ -89,10 +89,10 @@ rot_nocur <- rot_all %>%
 
 rot_training <- rot_all %>%
   filter(reach_type == "reach")
-
-# colourblind friendly palette
-cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
-          "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+```{r, cols.print = 10, warning=FALSE}
+# palette
+cbp1 <- c("#ff8000", "#e51636", "#0500a0")
 
 ```
 
@@ -223,51 +223,6 @@ bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "ramped", "mean_devs")
 bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "abrupt", "mean_devs")
 ```
 
-### Plot for paper
-```{r}
-wo_strat_blocks <- nocur_summary %>% 
-  filter(strat_use == '0') %>% #only the implicit aftereffects
-  filter((exp == 'stepped' & block_num == '4') | 
-           (exp == 'abrupt' & block_num == '1') |
-           (exp == 'ramped' & block_num == '1') | 
-           (exp == 'abrupt' & block_num == '4') |
-           (exp == 'ramped' & block_num == '4')) %>%
-  unite(exp_block, exp, block_num)
-
-# make descriptive df
-desc_df <- wo_strat_blocks %>%
-  group_by(exp_block) %>%
-  summarise(means = mean(mean_devs), 
-            sd = sd(mean_devs), 
-            ci = vector_confint(mean_devs),
-            n = n(), .groups = "drop")
-
-# plot
-p <- plot_nice_group_density(wo_strat_blocks,
-                        desc_df,
-                        group = "exp_block", 
-                        y = "mean_devs", 
-                        title = "Implicit Aftereffects")
-
-# set colour
-p <- p + scale_color_manual(values = c(cbp1[2],
-                                  cbp1[2],
-                                  cbp1[3],
-                                  cbp1[3],
-                                  cbp1[4]), labels = c("Abrupt Block 1", 
-                                                       "Abrupt Block 4",
-                                                       "Ramped Block 1",
-                                                       "Ramped Block 4",
-                                                       "Abrupt Block 1"))
-p <- p + theme(panel.grid.major.y = element_line(colour = "#CCCCCC"),
-               panel.grid.major.x = element_blank(),
-               axis.text.x=element_blank()) + 
-  xlab(NULL) + ylab("reach aftereffects without strategy (°)")
-p
-
-ggsave(p, height = 9, width = 5, device = "png", filename = "data/paper_figs/implicit_aes.png")
-```
-
 
 ### Explicit strategy
 Same analysis pipeline as for the implicit measures
@@ -385,51 +340,6 @@ TukeyHSD(btwn_block_strat_ANOVA)
 ```
 
 
-### Paper figure
-```{r}
-strat_blocks <- nocur_summary_wide %>% 
-  filter((exp == 'stepped' & block_num == '4') | 
-           (exp == 'abrupt' & block_num == '1') |
-           (exp == 'ramped' & block_num == '1') | 
-           (exp == 'abrupt' & block_num == '4') |
-           (exp == 'ramped' & block_num == '4')) %>%
-  unite(exp_block, exp, block_num)
-
-# make descriptive df
-desc_df <- strat_blocks %>%
-  group_by(exp_block) %>%
-  summarise(means = mean(strategy), 
-            sd = sd(strategy), 
-            ci = vector_confint(strategy),
-            n = n(), .groups = "drop")
-
-# plot
-p <- plot_nice_group_density(strat_blocks,
-                        desc_df,
-                        group = "exp_block", 
-                        y = "strategy", 
-                        title = "Explicit Strategies")
-
-# set colour
-p <- p + scale_color_manual(values = c(cbp1[2],
-                                  cbp1[2],
-                                  cbp1[3],
-                                  cbp1[3],
-                                  cbp1[4]), labels = c("Abrupt Block 1", 
-                                                       "Abrupt Block 4",
-                                                       "Ramped Block 1",
-                                                       "Ramped Block 4",
-                                                       "Abrupt Block 1"))
-p <- p + theme(panel.grid.major.y = element_line(colour = "#CCCCCC"),
-               panel.grid.major.x = element_blank(),
-               axis.text.x=element_blank()) + 
-  xlab(NULL) + ylab("reach aftereffects without strategy (°)")
-p
-
-ggsave(p, height = 9, width = 5, device = "png", filename = "data/paper_figs/explicit_aes.png")
-```
-
-
 
 
 
@@ -519,7 +429,6 @@ bayes_t_test(training_final_trial_set, "exp", "stepped", "ramped", "angular_dev_
 bayes_t_test(training_final_trial_set, "exp", "stepped", "abrupt", "angular_dev_mean")
 ```
 
-----
 # Combining all data
 
 Plotting all data
@@ -581,25 +490,87 @@ p
 
 # Slopes of no-cusor reaches over time
 Make some summary data sets
-```{r}
+```{r, warning=FALSE}
 #start with the no cursor data
-rot_nocur <- rot_all %>%
-  filter(reach_type == "nocursor")
+# rot_nocur <- rot_all %>%
+#   filter(reach_type == "nocursor")
+
+# use block trial nums
+# block_trials <- list()
+# i <- 1
+# for(ppt_i in unique(rot_nocur$ppt)){
+#   for (strat_use_i in unique(rot_nocur$strat_use)){
+#     for (block_num_i in unique(rot_nocur$block_num_detailed)){
+#       for (exp_i in unique(rot_nocur$exp)){
+#     
+#         temp <- rot_nocur %>%
+#           filter(strat_use == strat_use_i, block_num_detailed == block_num_i, 
+#                  exp == exp_i, ppt == ppt_i)
+#         # print(c(strat_use_i, block_num_i, exp_i))
+#         temp = mutate(temp, trial = trial_num_cont - min(trial_num_cont) + 1)
+#         
+#         #NOTE LARGE TIME CONSUMING WARNING MESSAGE HERE!
+#         # save this one df to datalist
+#         block_trials[[i]] <- temp
+#           
+#         i <- i+1
+#       }
+#     }
+#   }
+# }
+# test <- do.call(rbind, block_trials)
+# 
+# 
+# rot_nocur <- test
+  
 
 rot_nocur_trial_summary <- rot_nocur %>%
-  group_by(exp, block_num_detailed, trial_num_cont, strat_use) %>%
+  group_by(exp, block_num, trial, strat_use) %>%
   summarise(mean = mean(angular_dev),
             sd = sd(angular_dev), 
             ci = vector_confint(angular_dev),
             n = n(), .groups = "drop")
 
-rot_nocur_detailed_block_summary <-  rot_nocur %>%
-  group_by(exp, ppt, block_num_detailed, strat_use) %>%
+rot_nocur_block_summary_ppt <-  rot_nocur %>%
+  group_by(exp, ppt, block_num, strat_use) %>%
   summarise(angular_dev_temp = mean(angular_dev),
             sd = sd(angular_dev), 
             ci = vector_confint(angular_dev),
-            n = n(), .groups = "drop") %>%
-  group_by(exp, block_num_detailed, strat_use) %>%
+            n = n(), .groups = "drop") 
+
+# add slopes to the above summary table
+
+beta_list <- list()
+intercept_list <- list()
+i <- 1
+
+for (strat_use_i in unique(rot_nocur_block_summary_ppt$strat_use)){
+  for (block_num_i in unique(rot_nocur_block_summary_ppt$block_num)){
+    for (ppt_i in unique(rot_nocur_block_summary_ppt$ppt)){
+      if (exp_i == "ramped" & block_num_i == "1.1"){
+        next
+      }
+      temp <- rot_nocur %>%
+          filter(strat_use == strat_use_i, block_num == block_num_i,
+                 ppt == ppt_i)
+      
+      lm_fit <- lm(temp$angular_dev ~ temp$trial)
+      
+      beta_list[[i]] <- lm_fit$coefficients[2]
+      intercept_list[[i]] <- lm_fit$coefficients[1]
+      i <- i+1 
+    }
+  }
+}
+
+temp <- do.call(rbind, beta_list)[,]
+rot_nocur_block_summary_ppt$beta <- temp
+
+temp <- do.call(rbind, intercept_list)[,]
+rot_nocur_block_summary_ppt$intercept <- temp
+
+rot_nocur_detailed_block_summary_ppt <- rot_nocur_block_summary_ppt %>%
+  group_by(exp, block_num, strat_use) %>%
   summarise(mean_angular_dev = mean(angular_dev_temp),
             sd = sd(angular_dev_temp), 
             ci = vector_confint(angular_dev_temp),
@@ -609,10 +580,10 @@ rot_nocur_detailed_block_summary <-  rot_nocur %>%
 ```
 Isolate without strategy reaches
 ```{r}
-test <- rot_nocur_trial_summary %>%
-  filter(strat_use == 0, block_num_detailed == 1.1, exp == "stepped")
-test = mutate(test, trial = trial_num_cont - min(trial_num_cont) + 1)
-lm.stepped_1.1 <- lm(test$mean ~ test$trial)
+# test <- rot_nocur_trial_summary %>%
+#   filter(strat_use == 0, block_num_detailed == 1.1, exp == "stepped")
+# test = mutate(test, trial = trial_num_cont - min(trial_num_cont) + 1)
+# lm.stepped_1.1 <- lm(test$mean ~ test$trial)
 
 # add intercept, slope, fitted values, and r^2 to detailed block summary
 rot_nocur_detailed_block_summary$intercept <- NA
@@ -621,24 +592,25 @@ rot_nocur_detailed_block_summary$slope <- NA
 #rot_nocur_detailed_block_summary$trial_list <- list(as.numeric(c(1,2,3,4)))
 rot_nocur_detailed_block_summary$r_2 <- NA
 rot_nocur_trial_summary$fitted_values <- NA
-rot_nocur_trial_summary$short_trials <- NA
+# rot_nocur_trial_summary$short_trials <- NA
+
 
 for (strat_use_i in unique(rot_nocur_trial_summary$strat_use)){
-  for (block_num_i in unique(rot_nocur_trial_summary$block_num_detailed)){
+  for (block_num_i in unique(rot_nocur_trial_summary$block_num)){
     for (exp_i in unique(rot_nocur_trial_summary$exp)){
       if (exp_i == "ramped" & block_num_i == "1.1"){
         next
       }
       #isolate df
       temp <- rot_nocur_trial_summary %>%
-        filter(strat_use == strat_use_i, block_num_detailed == block_num_i, exp == exp_i)
+        filter(strat_use == strat_use_i, block_num == block_num_i, exp == exp_i)
       # print(c(strat_use_i, block_num_i, exp_i))
-      temp = mutate(temp, trial = trial_num_cont - min(trial_num_cont) + 1)
+      # temp = mutate(temp, trial = trial_num_cont - min(trial_num_cont) + 1)
       
       lm_fit <- lm(temp$mean ~ temp$trial)
       
       bool_arr <- rot_nocur_detailed_block_summary$strat_use == strat_use_i & 
-                                         rot_nocur_detailed_block_summary$block_num_detailed == block_num_i &
+                                         rot_nocur_detailed_block_summary$block_num == block_num_i &
                                           rot_nocur_detailed_block_summary$exp == exp_i
       
       rot_nocur_detailed_block_summary[ bool_arr, ]$intercept <- paste("intercept: ", round(lm_fit$coefficients[1], 2))
@@ -648,10 +620,10 @@ for (strat_use_i in unique(rot_nocur_trial_summary$strat_use)){
       rot_nocur_detailed_block_summary[ bool_arr, ]$r_2 <- paste("r_2: ", round(summary(lm_fit)$r.squared, 2))
       
       bool_arr <- rot_nocur_trial_summary$strat_use == strat_use_i & 
-                                         rot_nocur_trial_summary$block_num_detailed == block_num_i &
+                                         rot_nocur_trial_summary$block_num == block_num_i &
                                           rot_nocur_trial_summary$exp == exp_i
       rot_nocur_trial_summary[bool_arr, ]$fitted_values <- array(lm_fit$fitted.values)
-      rot_nocur_trial_summary[bool_arr, ]$short_trials <- temp$trial
+      # [bool_arr, ]$short_trials <- temp$trial
     }
   }
 }
@@ -659,61 +631,183 @@ for (strat_use_i in unique(rot_nocur_trial_summary$strat_use)){
 
 ```{r}
 p <- rot_nocur_trial_summary %>% 
-  ggplot(aes(short_trials, mean, colour = exp, shape = strat_use)) +
+  ggplot(aes(trial, mean, colour = exp, shape = strat_use)) +
   scale_shape_manual(values=c(20, 2))+
   # stat_summary(fun=mean, geom="point", size=3, color="red") +
   theme_minimal() +
-  theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
-  ggtitle("All data") +
-  scale_y_continuous(limits = c(-0.5, 70))
+  theme(panel.grid.major.y = element_line(colour = "#CCCCCC"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank()) +
+  ggtitle("Decay during no-cursor reaches") +
+  scale_y_continuous(limits = c(-0.5, 35)) +
+  scale_x_continuous(limits = c(0, 10), breaks = c(0,5, 10), 
+                     labels = c(0, 5, 10))
 
 
-p <- p + 
-  geom_line(aes(y = fitted_values)) +
-  geom_point(aes( x = short_trials, y = mean), alpha = 0.5) +
-  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "stepped"), 
-            aes(x = 9, y = 40, label = intercept),
-            nudge_y = 0, size = 3, hjust = 0) +
-  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "ramped"), 
-            aes(x = 9, y = 40, label = intercept),
-            nudge_y = 10, size = 3, hjust = 0) +
-  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "abrupt"), 
-            aes(x = 9, y = 40, label = intercept),
-            nudge_y = 20, size = 3, hjust = 0) +
-  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "stepped"), 
-            aes(x = 9, y = 43, label = slope),
-            nudge_y = 0, size = 3, hjust = 0) +
-  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "ramped"), 
-            aes(x = 9, y = 43, label = slope),
-            nudge_y = 10, size = 3, hjust = 0) +
-  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "abrupt"), 
-            aes(x = 9, y = 43, label = slope),
-            nudge_y = 20, size = 3, hjust = 0) +
-  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "stepped"), 
-            aes(x = 9, y = 46, label = r_2),
-            nudge_y = 0, size = 3, hjust = 0) +
-  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "ramped"), 
-            aes(x = 9, y = 46, label = r_2),
-            nudge_y = 10, size = 3, hjust = 0) +
-  geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "abrupt"), 
-            aes(x = 9, y = 46, label = r_2),
-            nudge_y = 20, size = 3, hjust = 0) 
 
 p <- p +
-  facet_grid(rows = vars(strat_use), cols = vars(block_num_detailed))
+  geom_line(aes(y = fitted_values)) +
+  geom_point(aes( x = trial, y = mean), alpha = 0.5) +
+#   geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "stepped"), 
+#             aes(x = 9, y = 40, label = intercept),
+#             nudge_y = 0, size = 3, hjust = 0) +
+#   geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "ramped"), 
+#             aes(x = 9, y = 40, label = intercept),
+#             nudge_y = 10, size = 3, hjust = 0) +
+#   geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "abrupt"), 
+#             aes(x = 9, y = 40, label = intercept),
+#             nudge_y = 20, size = 3, hjust = 0) +
+#   geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "stepped"), 
+#             aes(x = 9, y = 43, label = slope),
+#             nudge_y = 0, size = 3, hjust = 0) +
+#   geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "ramped"), 
+#             aes(x = 9, y = 43, label = slope),
+#             nudge_y = 10, size = 3, hjust = 0) +
+#   geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "abrupt"), 
+#             aes(x = 9, y = 43, label = slope),
+#             nudge_y = 20, size = 3, hjust = 0) +
+#   geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "stepped"), 
+#             aes(x = 9, y = 46, label = r_2),
+#             nudge_y = 0, size = 3, hjust = 0) +
+#   geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "ramped"), 
+#             aes(x = 9, y = 46, label = r_2),
+#             nudge_y = 10, size = 3, hjust = 0) +
+#   geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "abrupt"), 
+#             aes(x = 9, y = 46, label = r_2),
+#            nudge_y = 20, size = 3, hjust = 0) +
+    NULL
+
+p <- p +
+  facet_grid(rows = vars(strat_use), cols = vars(block_num))
 
 p
 
-# ggsave(p, height = 9, width = 16, device = "svg", filename = "data/paper_figs/no_cur_regressions.svg")
+ggsave(p, height = 5, width = 9, device = "png", filename = "data/paper_figs/no_cur_regressions.png")
 ```
+ANOVA on slopes
 ```{r}
-summary(lm.stepped_1.1)
+rot_nocur_block_summary_ppt_nostrat <- rot_nocur_block_summary_ppt %>%
+  filter(strat_use == 0)
+slope_aov <- ezANOVA( data = rot_nocur_block_summary_ppt_nostrat,
+                           wid = ppt,
+                           dv = beta, 
+                           within = block_num,
+                           between = exp,
+                           detailed = FALSE,
+                           return_aov = TRUE)
+print(slope_aov)
+```
+ANOVA on intercepts
+```{r}
+rot_nocur_block_summary_ppt_nostrat <- rot_nocur_block_summary_ppt %>%
+  filter(strat_use == 0)
+intercept_aov <- ezANOVA( data = rot_nocur_block_summary_ppt_nostrat,
+                           wid = ppt,
+                           dv = intercept, 
+                           within = block_num,
+                           between = exp,
+                           detailed = FALSE,
+                           return_aov = TRUE)
+print(intercept_aov)
+```
+
+# Paper Figures
+
+### Implicit aftereffects
+```{r}
+wo_strat_blocks <- nocur_summary %>% 
+  filter(strat_use == '0') %>% #only the implicit aftereffects
+  filter((exp == 'stepped' & block_num == '4') | 
+           (exp == 'abrupt' & block_num == '1') |
+           (exp == 'ramped' & block_num == '1') | 
+           (exp == 'abrupt' & block_num == '4') |
+           (exp == 'ramped' & block_num == '4')) %>%
+  unite(exp_block, exp, block_num)
+
+# make descriptive df
+desc_df <- wo_strat_blocks %>%
+  group_by(exp_block) %>%
+  summarise(means = mean(mean_devs), 
+            sd = sd(mean_devs), 
+            ci = vector_confint(mean_devs),
+            n = n(), .groups = "drop")
+
+# plot
+p <- plot_nice_group_density(wo_strat_blocks,
+                        desc_df,
+                        group = "exp_block", 
+                        y = "mean_devs", 
+                        title = "Implicit Aftereffects")
+
+# set colour
+p <- p + scale_color_manual(values = c(cbp1[3],
+                                  cbp1[3],
+                                  cbp1[1],
+                                  cbp1[1],
+                                  cbp1[2]), labels = c("Abrupt Block 1", 
+                                                       "Abrupt Block 4",
+                                                       "Ramped Block 1",
+                                                       "Ramped Block 4",
+                                                       "Stepped Block 4"))
+p <- p + theme(panel.grid.major.y = element_line(colour = "#CCCCCC"),
+               panel.grid.major.x = element_blank(),
+               axis.text.x=element_blank()) + 
+  xlab(NULL) + ylab("reach aftereffects without strategy (°)")
+p
+
+ggsave(p, height = 5, width = 4, device = "png", filename = "data/paper_figs/implicit_aes.png")
+```
+
+### Explicit Strategies
+```{r}
+strat_blocks <- nocur_summary_wide %>% 
+  filter((exp == 'stepped' & block_num == '4') | 
+           (exp == 'abrupt' & block_num == '1') |
+           (exp == 'ramped' & block_num == '1') | 
+           (exp == 'abrupt' & block_num == '4') |
+           (exp == 'ramped' & block_num == '4')) %>%
+  unite(exp_block, exp, block_num)
+
+# make descriptive df
+desc_df <- strat_blocks %>%
+  group_by(exp_block) %>%
+  summarise(means = mean(strategy), 
+            sd = sd(strategy), 
+            ci = vector_confint(strategy),
+            n = n(), .groups = "drop")
+
+# plot
+p <- plot_nice_group_density(strat_blocks,
+                        desc_df,
+                        group = "exp_block", 
+                        y = "strategy", 
+                        title = "Explicit Strategies")
+
+# set colour
+p <- p + scale_color_manual(values = c(cbp1[3],
+                                  cbp1[3],
+                                  cbp1[1],
+                                  cbp1[1],
+                                  cbp1[2]), labels = c("Abrupt Block 1", 
+                                                       "Abrupt Block 4",
+                                                       "Ramped Block 1",
+                                                       "Ramped Block 4",
+                                                       "Stepped Block 4"))
+p <- p + theme(panel.grid.major.y = element_line(colour = "#CCCCCC"),
+               panel.grid.major.x = element_blank(),
+               axis.text.x=element_blank()) + 
+  xlab(NULL) + ylab("reach aftereffects without strategy (°)")
+p
+
+ggsave(p, height = 5, width = 4, device = "png", filename = "data/paper_figs/explicit_aes.png")
 ```
 
 
 
 
-----
+
+
+
 # Older reach training analysis
 We use the blocks of interest
 ```{r}

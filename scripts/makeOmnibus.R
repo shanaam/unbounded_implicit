@@ -202,14 +202,14 @@ makeTrainingOmnibus <- function(){
 
 ## ----
 ## Run the functions this needs fixing..
-library(future)
-plan(multiprocess)
+# library(future)
+# plan(multiprocess)
 
 #NOTE: %<-% is a "future assignment"
 # tempjob1 %<-% makeNoCurOmnibus()
 # tempjob2 %<-% makeTrainingOmnibus()
 
-temp.list <- lapply(ls(pattern = "temp"), get)
+# temp.list <- lapply(ls(pattern = "temp"), get)
 
 
 
