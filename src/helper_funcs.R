@@ -58,52 +58,42 @@ plot_desc_group_density <- function(df, group, y, subgroup = NULL, title = "Dist
   return(p)
 }
 
-plot_nice_group_density <- function(df, group, y, subgroup = NULL, title = "Distributions within Groups"){
+plot_nice_group_density <- function(df, desc_df, group, y, subgroup = NULL, title = "Distributions within Groups"){
   # plot some density things for visualizing data in groups
   # group, and y are strings
   # plot some density things for visualizing data in groups
   # group, and y are strings
-  group_tidy <- enquo(group)
-  y_tidy <- enquo(y)
-  subgroup_tidy <- enquo(subgroup)
   
-  desc_temp <- df %>%
-    group_by(!!group_tidy, !!subgroup_tidy) %>%
-    summarise(means = mean(!!y_tidy), 
-              sd = sd(!!y_tidy), 
-              ci = vector_confint(!!y_tidy),
-              n = n(), .groups = "drop")
+  desc_temp <- desc_df
   
   if (is.null(subgroup)){
-    p <- df %>% 
-      ggplot(aes(!!group_tidy, !!y_tidy, colour = !!group_tidy)) +
+    p <- df %>%
+      ggplot(aes(.data[[group]],.data[[y]], colour= .data[[group]])) +
       geom_beeswarm(alpha = 0.2) +
       geom_linerange(data = desc_temp,
-                     aes(!!group_tidy, means,
+                     aes(.data[[group]], means,
                          ymin = means - ci, ymax = means + ci),
-                     lwd = 5, alpha = 0.4,
-                     position = position_dodge(width = .6)) +
+                     lwd = 2, alpha = 0.8) +
       geom_point(data = desc_temp,
                  aes(y = means),
-                 size = 5, alpha = 0.6,
-                 position = position_dodge(width = .6))
+                 size = 2, alpha = 1)
   }
   else{
-    p <- df %>% 
+    p <- df %>%
       ggplot(aes(!!group_tidy, !!y_tidy, colour = !!subgroup_tidy)) +
-      geom_beeswarm(dodge.width = .6, alpha = 0.2) + 
+      geom_beeswarm(dodge.width = .6, alpha = 0.2) +
       geom_linerange(data = desc_temp,
                    aes(!!group_tidy, means, colour = !!subgroup_tidy,
                        ymin = means - ci, ymax = means + ci),
-                   lwd = 5, alpha = 0.4,
+                   lwd = 3, alpha = 0.5,
                    position = position_dodge(width = .6))
   }
-  
-  p <- p + 
+
+  p <- p +
     theme_minimal() +
     theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
     ggtitle(title)
-  
+
   return(p)
 }
 

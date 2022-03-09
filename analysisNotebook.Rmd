@@ -90,6 +90,10 @@ rot_nocur <- rot_all %>%
 rot_training <- rot_all %>%
   filter(reach_type == "reach")
 
+# colourblind friendly palette
+cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
+          "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
 ```
 
 The column of interest is "angular_dev". It contains, in degrees, the amount participants deviated from a straight-line reach towards the target.   
@@ -219,7 +223,50 @@ bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "ramped", "mean_devs")
 bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "abrupt", "mean_devs")
 ```
 
+### Plot for paper
+```{r}
+wo_strat_blocks <- nocur_summary %>% 
+  filter(strat_use == '0') %>% #only the implicit aftereffects
+  filter((exp == 'stepped' & block_num == '4') | 
+           (exp == 'abrupt' & block_num == '1') |
+           (exp == 'ramped' & block_num == '1') | 
+           (exp == 'abrupt' & block_num == '4') |
+           (exp == 'ramped' & block_num == '4')) %>%
+  unite(exp_block, exp, block_num)
 
+# make descriptive df
+desc_df <- wo_strat_blocks %>%
+  group_by(exp_block) %>%
+  summarise(means = mean(mean_devs), 
+            sd = sd(mean_devs), 
+            ci = vector_confint(mean_devs),
+            n = n(), .groups = "drop")
+
+# plot
+p <- plot_nice_group_density(wo_strat_blocks,
+                        desc_df,
+                        group = "exp_block", 
+                        y = "mean_devs", 
+                        title = "Implicit Aftereffects")
+
+# set colour
+p <- p + scale_color_manual(values = c(cbp1[2],
+                                  cbp1[2],
+                                  cbp1[3],
+                                  cbp1[3],
+                                  cbp1[4]), labels = c("Abrupt Block 1", 
+                                                       "Abrupt Block 4",
+                                                       "Ramped Block 1",
+                                                       "Ramped Block 4",
+                                                       "Abrupt Block 1"))
+p <- p + theme(panel.grid.major.y = element_line(colour = "#CCCCCC"),
+               panel.grid.major.x = element_blank(),
+               axis.text.x=element_blank()) + 
+  xlab(NULL) + ylab("reach aftereffects without strategy (°)")
+p
+
+ggsave(p, height = 9, width = 5, device = "png", filename = "data/paper_figs/implicit_aes.png")
+```
 
 
 ### Explicit strategy
@@ -338,8 +385,49 @@ TukeyHSD(btwn_block_strat_ANOVA)
 ```
 
 
+### Paper figure
+```{r}
+strat_blocks <- nocur_summary_wide %>% 
+  filter((exp == 'stepped' & block_num == '4') | 
+           (exp == 'abrupt' & block_num == '1') |
+           (exp == 'ramped' & block_num == '1') | 
+           (exp == 'abrupt' & block_num == '4') |
+           (exp == 'ramped' & block_num == '4')) %>%
+  unite(exp_block, exp, block_num)
 
+# make descriptive df
+desc_df <- strat_blocks %>%
+  group_by(exp_block) %>%
+  summarise(means = mean(strategy), 
+            sd = sd(strategy), 
+            ci = vector_confint(strategy),
+            n = n(), .groups = "drop")
 
+# plot
+p <- plot_nice_group_density(strat_blocks,
+                        desc_df,
+                        group = "exp_block", 
+                        y = "strategy", 
+                        title = "Explicit Strategies")
+
+# set colour
+p <- p + scale_color_manual(values = c(cbp1[2],
+                                  cbp1[2],
+                                  cbp1[3],
+                                  cbp1[3],
+                                  cbp1[4]), labels = c("Abrupt Block 1", 
+                                                       "Abrupt Block 4",
+                                                       "Ramped Block 1",
+                                                       "Ramped Block 4",
+                                                       "Abrupt Block 1"))
+p <- p + theme(panel.grid.major.y = element_line(colour = "#CCCCCC"),
+               panel.grid.major.x = element_blank(),
+               axis.text.x=element_blank()) + 
+  xlab(NULL) + ylab("reach aftereffects without strategy (°)")
+p
+
+ggsave(p, height = 9, width = 5, device = "png", filename = "data/paper_figs/explicit_aes.png")
+```
 
 
 

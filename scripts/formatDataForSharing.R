@@ -6,21 +6,35 @@ library(tidyverse)
 library(ggbeeswarm)
 
 
-# tosave_nocur <- nocur_summary_blocks %>% 
-#   filter(exp == "stepwiseExp" | exp == "longAbruptExp"| exp == "gradualExp")
+# load in the large df
+rot_all <- read_delim("data/bl_corrected/bl_corrected_data.csv", 
+                      delim = ",", 
+                      col_types = cols(.default = col_double(),
+                                       targetangle_deg = col_factor(),
+                                       strat_use = col_factor(),
+                                       ppt = col_factor(),
+                                       exp = col_factor(),
+                                       block_num = col_factor(),
+                                       reach_type = col_factor()))
 
+# separate the nocursor and training data
+rot_nocur <- rot_all %>%
+  filter(reach_type == "nocursor")
+
+rot_training <- rot_all %>%
+  filter(reach_type == "reach")
 
 
 # stepwise only
 
-tosave_adaptation_long <- rot_training_t %>% 
-  filter(exp == "stepped") %>%
-  select(trial_num_cont, rotation_angle, targetangle_deg, ppt, exp, angular_dev)
+tosave_adaptation_long <- rot_training %>% 
+  # filter(exp == "stepped") %>%
+  select(trial_num_cont, block_num_detailed, rotation_angle, targetangle_deg, strat_use, ppt, exp, angular_dev)
 
 
-tosave_nocur_long <- rot_nocur_t %>% 
-  filter(exp == "stepped") %>%
-  select(trial_num_cont, rotation_angle, targetangle_deg, strat_use, ppt, exp, angular_dev)
+tosave_nocur_long <- rot_nocur %>% 
+  # filter(exp == "stepped") %>%
+  select(trial_num_cont, block_num_detailed, rotation_angle, targetangle_deg, strat_use, ppt, exp, angular_dev)
 
-fwrite(tosave_nocur_long, file = "data/shanaa_step_nocursor.csv")
-fwrite(tosave_adaptation_long, file = "data/shanaa_step_adaptation.csv")
+fwrite(tosave_nocur_long, file = "data/shanaa_nocursor.csv")
+fwrite(tosave_adaptation_long, file = "data/shanaa_adaptation.csv")
