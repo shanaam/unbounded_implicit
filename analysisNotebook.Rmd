@@ -525,7 +525,7 @@ Make some summary data sets
   
 
 rot_nocur_trial_summary <- rot_nocur %>%
-  group_by(exp, block_num, trial, strat_use) %>%
+  group_by(exp, block_num, trial_num_cont, strat_use) %>%
   summarise(mean = mean(angular_dev),
             sd = sd(angular_dev), 
             ci = vector_confint(angular_dev),
@@ -544,12 +544,13 @@ beta_list <- list()
 intercept_list <- list()
 i <- 1
 
+
 for (strat_use_i in unique(rot_nocur_block_summary_ppt$strat_use)){
   for (block_num_i in unique(rot_nocur_block_summary_ppt$block_num)){
     for (ppt_i in unique(rot_nocur_block_summary_ppt$ppt)){
-      if (exp_i == "ramped" & block_num_i == "1.1"){
-        next
-      }
+      # if (exp_i == "ramped" & block_num_i == "1.1"){
+      #   next
+      # }
       temp <- rot_nocur %>%
           filter(strat_use == strat_use_i, block_num == block_num_i,
                  ppt == ppt_i)
@@ -631,7 +632,7 @@ for (strat_use_i in unique(rot_nocur_trial_summary$strat_use)){
 
 ```{r}
 p <- rot_nocur_trial_summary %>% 
-  ggplot(aes(trial, mean, colour = exp, shape = strat_use)) +
+  ggplot(aes(trial_num_cont, mean, colour = exp, shape = strat_use)) +
   scale_shape_manual(values=c(20, 2))+
   # stat_summary(fun=mean, geom="point", size=3, color="red") +
   theme_minimal() +
@@ -647,7 +648,7 @@ p <- rot_nocur_trial_summary %>%
 
 p <- p +
   geom_line(aes(y = fitted_values)) +
-  geom_point(aes( x = trial, y = mean), alpha = 0.5) +
+  geom_point(aes( x = trial_num_cont, y = mean), alpha = 0.5) +
 #   geom_text(data = filter(rot_nocur_detailed_block_summary, exp == "stepped"), 
 #             aes(x = 9, y = 40, label = intercept),
 #             nudge_y = 0, size = 3, hjust = 0) +

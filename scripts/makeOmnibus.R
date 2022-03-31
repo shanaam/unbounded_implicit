@@ -81,8 +81,8 @@ makeNoCurOmnibus <- function(){
                                        "cursory_px", "selected", "P", "?", "maxV", "??")
         }
         
-        maxVrows <- df[df$selected == 1 & df$maxV == 1, task_num:cursory_px]
-        
+        # maxVrows <- df[df$selected == 1 & df$maxV == 1, task_num:cursory_px]
+        maxVrows <- df[df$maxV == 1, task_num:cursory_px]
         #add new columns
         maxVrows$ppt <- paste(ppt, expVersion, sep = '_')
         
@@ -135,7 +135,7 @@ makeNoCurOmnibus <- function(){
                      'targetdistance_percmax')] <- NULL
   
   # save the omnibus df
-  fwrite(omnibus_nocur, file = "data/omnibus/omnibus_nocur_t.csv")
+  fwrite(omnibus_nocur, file = "data/omnibus/omnibus_nocur.csv")
   
 }
 
@@ -163,7 +163,8 @@ makeTrainingOmnibus <- function(){
         
         df <- fread(filePath, stringsAsFactors = FALSE)
         
-        maxVrows <- filter(df, selected == 1, maxV == 1)
+        # maxVrows <- filter(df, selected == 1, maxV == 1)
+        maxVrows <- filter(df, maxV == 1)
         
         maxVrows$stratUse <- 0 #this is just filler
         
@@ -197,7 +198,7 @@ makeTrainingOmnibus <- function(){
                      'targetdistance_percmax')] <- NULL
   
   # save the omnibus df
-  fwrite(omnibus_training, file = "data/omnibus/omnibus_training_t.csv")
+  fwrite(omnibus_training, file = "data/omnibus/omnibus_training.csv")
 }
 
 ## ----
