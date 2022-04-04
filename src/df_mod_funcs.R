@@ -5,14 +5,16 @@
 ##### 
 # No Cursors
 
+# THIS FUNCTION IS DEPRECATED (way too slow)
 apply_blcorrection <- function(rot_df_row, bl_df){
   # no cursor baseline correction
   # make sure input is in format: targetangle_deg, ppt, angular_dev
   
-  bl <- filter(bl_df, 
-               targetangle_deg == rot_df_row[1] & 
-                 ppt == rot_df_row[2])$angular_dev %>% 
+  bl <- filter(bl_df,
+               targetangle_deg == rot_df_row[1] &
+                 ppt == rot_df_row[2])$angular_dev %>%
     mean(na.rm = TRUE)
+  
   
   
   corrected_dev <- as.numeric(rot_df_row[3]) - bl

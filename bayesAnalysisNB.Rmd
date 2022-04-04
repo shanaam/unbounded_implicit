@@ -10,6 +10,7 @@ output:
     df_print: paged
     
 ---
+
 ```{r setup, include=FALSE, warning=FALSE}
 rm(list = ls())      # clean environment
 

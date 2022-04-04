@@ -1,7 +1,7 @@
 ---
-title: "Unbounded Implicit Learning - Detailed Analysis"
-author: "Shanaathanan Modchalingam"
-date: "July 2, 2019"
+title: "Unbounded Implicit Learning - Analysis"
+author: "Shanaa Modchalingam"
+date: '2022-04-04'
 output: 
   html_notebook:
     toc: true
@@ -99,9 +99,7 @@ cbp1 <- c("#ff8000", "#e51636", "#0500a0")
 The column of interest is "angular_dev". It contains, in degrees, the amount participants deviated from a straight-line reach towards the target.   
 
 
-
-
-# we will get a mean for each participant
+### we will get a mean for each participant
 
 ```{r}
 nocur_summary <- rot_nocur %>%
@@ -139,7 +137,6 @@ We will do 2 sets of analyses for all sets of data. First, we compare our measur
 
 To test whether the method of perturbation onset effected implicit learning, we compared the aftereffects of learning in No-Strategy trials.
 
----
 1. Initial measures
 ```{r}
 wo_strat_init_blocks <- nocur_summary %>% 
@@ -183,9 +180,6 @@ bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "abrupt", "mean_devs")
 
 
 
-
-
----
 2. Time-constant measures
 
 ```{r}
@@ -279,7 +273,6 @@ bayes_t_test(strat_initial_blocks, "exp", "stepped", "abrupt", "strategy")
 ```
 
 
----
 
 2. Same but for the final block
 ```{r}
@@ -340,11 +333,6 @@ TukeyHSD(btwn_block_strat_ANOVA)
 ```
 
 
-
-
-
-
----
 
 # Reach training analysis
 

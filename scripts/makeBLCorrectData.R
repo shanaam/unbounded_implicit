@@ -54,11 +54,19 @@ omnibus_training$exp <- recode_factor(omnibus_training$exp, "longAbruptExp" = "a
 
 # separate rotated and bl reaches
 rot_training <- filter(omnibus_training, ((exp == "abrupt" | exp == "stepped") & rotation_angle != 0) | (exp == "ramped" & task_num >= 14 ))
-bl_training <- filter(omnibus_training, ((exp == "abrupt" | exp == "stepped") & rotation_angle == 0) | (exp == "ramped" & task_num < 14 ))
+bl_training <- filter(omnibus_training, ((exp == "abrupt" | exp == "stepped") & rotation_angle == 0) | (exp == "ramped" & task_num < 14 )) %>%
+  filter(trial_num_cont > 15, !trial_num_cont %in% c(46, 47, 48))
 
 # apply baseline correction ()
-rot_training$temp <- select(rot_training, targetangle_deg, ppt, angular_dev) %>%
-  apply(1, FUN = apply_blcorrection, bl_df = bl_training)
+# make bl_df first (faster than doing this in apply)
+bl_df <- bl_training %>%
+  group_by(ppt, targetangle_deg) %>%
+  summarise(bl_per_target = mean(angular_dev), .groups = "drop")
+
+rot_training <- rot_training %>%
+  left_join(bl_df, by=c("ppt", "targetangle_deg")) %>%
+  mutate(temp = angular_dev - bl_per_target) %>%
+  select(-bl_per_target)
 
 # rename some columns
 rot_training <- 
@@ -133,9 +141,28 @@ omnibus_nocur$exp <- recode_factor(omnibus_nocur$exp, "longAbruptExp" = "abrupt"
 rot_nocur <- filter(omnibus_nocur, rotation_angle != 0) 
 bl_nocur <- filter(omnibus_nocur, rotation_angle == 0)
 
+# remove first 3 baseline trials from baseline correction
+bl_nocur_mins <- bl_nocur %>%
+  group_by(ppt) %>%
+  summarise(min_trial = min(trial_num), .groups = "drop")
+
+bl_nocur <- bl_nocur %>%
+  left_join(bl_nocur_mins, by="ppt") %>%
+  filter(((exp == "abrupt" | exp == "ramped") & trial_num >= (min_trial + 3)) |
+           (exp == "stepped" & trial_num >= (min_trial + 3)) |
+           (exp == "stepped" & task_num == 11)) %>%
+  select(-min_trial)
+
 # apply the bl correction (this can take a while)
-rot_nocur$temp <- select(rot_nocur, targetangle_deg, ppt, angular_dev) %>%
-  apply(1, FUN = apply_blcorrection, bl_df = bl_nocur)
+# make bl_df first (faster than doing this in apply)
+bl_df <- bl_nocur %>%
+  group_by(ppt, targetangle_deg) %>%
+  summarise(bl_per_target = mean(angular_dev), .groups = "drop")
+
+rot_nocur <- rot_nocur %>%
+  left_join(bl_df, by=c("ppt", "targetangle_deg")) %>%
+  mutate(temp = angular_dev - bl_per_target) %>%
+  select(-bl_per_target)
 
 # rename columns
 rot_nocur <- rot_nocur %>% 
@@ -149,9 +176,6 @@ rot_nocur$block_num <- factor(rot_nocur$block_num, levels=c("1", "2", "3", "4"))
 
 # add dummy trial sets (these aren't needed)
 rot_nocur$trial_set <- "20"
-
-
-# rot_nocur$trial_num_cont <- rot_nocur$trial_num_cont - 66
 
 # arrange for trial numbering
 rot_nocur <- rot_nocur %>%
@@ -183,7 +207,6 @@ rot_all <- bind_rows(rot_training, rot_nocur) %>%
 # add detailed blocks (1.1, 1.2, 2.1, ..., 4.2)
 rot_all$block_num_detailed <- as.factor(apply(array(rot_all$trial_num_cont), 1, FUN = detailed_block_w_trial_num))
 rot_all$strat_use <- as.factor(rot_all$strat_use)
-
 
 
 # save the data
