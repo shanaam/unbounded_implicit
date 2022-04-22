@@ -65,7 +65,7 @@ __Interesting tidbits:__
 
 First, we analyze the no-cursor data. Here-in lies our main question; do implicit aftereffects
 
-## Preprocessing
+## Load and summarize data
 
 ### Load the baseline corrected data
 
@@ -99,8 +99,9 @@ cbp1 <- c("#ff8000", "#e51636", "#0500a0")
 The column of interest is "angular_dev". It contains, in degrees, the amount participants deviated from a straight-line reach towards the target.   
 
 
-### we will get a mean for each participant
+### Make a summary file with means for each participant
 
+Each participant has 8 means: 2 for each block (one for each strategy use)
 ```{r}
 nocur_summary <- rot_nocur %>%
   group_by(exp, ppt, block_num, strat_use) %>%
@@ -116,28 +117,44 @@ head(nocur_summary)
 
 ### OMNIBUS ANOVA
 We do a 3x4x2 mixed ANOVA (experiment x block x strategy use)
-```{r}
+```{r, include=FALSE}
 #performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
-no_cur_ANOVA <- nocur_summary %>% 
+temp_ANOVA <- nocur_summary %>%
+  ezANOVA(wid = ppt,
+        dv = mean_devs, 
+        within = .(block_num, strat_use),
+        between = exp,
+        detailed = TRUE)
+```
+```{r}
+#show and ANOVA + assumptions
+print(temp_ANOVA$ANOVA)
+```
+
+
+### Implicit aftereffects
+We will do 2 sets of analyses for all sets of data. First, we compare our measures in blocks where they first hit 60-degree rotations. Then, we compare block 4 in all groups (time = same).
+
+*3x4 ANOVA (experiment x block)*
+```{r, include=FALSE}
+#performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
+temp_ANOVA <- nocur_summary %>% 
   filter(strat_use == '0') %>%
   ezANOVA(wid = ppt,
         dv = mean_devs, 
         within = .(block_num),
         between = exp,
         detailed = TRUE)
-
-#show and ANOVA + assumptions
-print(no_cur_ANOVA)
 ```
-
-### Implicit aftereffects
-We will do 2 sets of analyses for all sets of data. First, we compare our measures in blocks where they first hit 60-degree rotations. Then, we compare block 4 in all groups (time = same).
-
-
+```{r}
+#show and ANOVA + assumptions
+print(temp_ANOVA$ANOVA)
+```
 
 To test whether the method of perturbation onset effected implicit learning, we compared the aftereffects of learning in No-Strategy trials.
 
-1. Initial measures
+*Early Implicit Aftereffects*
+These are aftereffects measured during the blocks in which participants first encounter a 60-degree rotation.
 ```{r}
 wo_strat_init_blocks <- nocur_summary %>% 
   filter(strat_use == '0') %>% #only the implicit aftereffects
@@ -149,11 +166,10 @@ wo_strat_init_blocks <- nocur_summary %>%
 
 Plot
 ```{r}
-#plot
 plot_desc_group_density(wo_strat_init_blocks, "exp", "mean_devs", title = "A. Initial Implicit Aftereffects")
 ```
+Descriptive stats
 ```{r}
-# descriptives
 wo_strat_init_blocks %>% 
   group_by(exp) %>%
   summarise(mean = mean(mean_devs), 
@@ -161,21 +177,27 @@ wo_strat_init_blocks %>%
             ci = vector_confint(mean_devs),
             n = n())
 ```
+ANOVA and post-hoc test
 ```{r}
-no_cur_ANOVA <- aov(mean_devs ~ exp, data = wo_strat_init_blocks)
+temp_ANOVA <- aov(mean_devs ~ exp, data = wo_strat_init_blocks)
 
 #show ANOVA + assumptions
-print(summary(no_cur_ANOVA), digits = 6)
-eta_squared(no_cur_ANOVA)
-TukeyHSD(no_cur_ANOVA)
+print(summary(temp_ANOVA), digits = 6)
+eta_squared(temp_ANOVA)
+TukeyHSD(temp_ANOVA)
 ```
 Bayes Factors
-```{r}
+```{r, include=FALSE}
 anovaBF(mean_devs ~ exp, data = wo_strat_init_blocks, progress=FALSE)
 
-bayes_t_test(wo_strat_init_blocks, "exp", "abrupt", "ramped", "mean_devs")
-bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "ramped", "mean_devs")
-bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "abrupt", "mean_devs")
+tmp_bf_abr_ramp <- bayes_t_test(wo_strat_init_blocks, "exp", "abrupt", "ramped", "mean_devs")
+tmp_bf_stp_ramp <- bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "ramped", "mean_devs")
+tmp_bf_stp_abr <- bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "abrupt", "mean_devs")
+```
+```{r}
+print(tmp_bf_abr_ramp)
+print(tmp_bf_stp_ramp)
+print(tmp_bf_stp_abr)
 ```
 
 
@@ -209,12 +231,17 @@ eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
 ```
 Bayes Factors
-```{r}
+```{r, include=FALSE}
 anovaBF(mean_devs ~ exp, data = wo_strat_final_blocks, progress=FALSE)
 
-bayes_t_test(wo_strat_final_blocks, "exp", "abrupt", "ramped", "mean_devs")
-bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "ramped", "mean_devs")
-bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "abrupt", "mean_devs")
+tmp_bf_abr_ramp <- bayes_t_test(wo_strat_final_blocks, "exp", "abrupt", "ramped", "mean_devs")
+tmp_bf_stp_ramp <- bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "ramped", "mean_devs")
+tmp_bf_stp_abr <- bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "abrupt", "mean_devs")
+```
+```{r}
+print(tmp_bf_abr_ramp)
+print(tmp_bf_stp_ramp)
+print(tmp_bf_stp_abr)
 ```
 
 
@@ -264,14 +291,18 @@ TukeyHSD(no_cur_ANOVA)
 ```
 
 Bayes Factors
-```{r}
+```{r, include=FALSE}
 anovaBF(strategy ~ exp, data = strat_initial_blocks, progress=FALSE)
 
-bayes_t_test(strat_initial_blocks, "exp", "abrupt", "ramped", "strategy")
-bayes_t_test(strat_initial_blocks, "exp", "stepped", "ramped", "strategy")
-bayes_t_test(strat_initial_blocks, "exp", "stepped", "abrupt", "strategy")
+tmp_bf_abr_ramp <- bayes_t_test(strat_initial_blocks, "exp", "abrupt", "ramped", "strategy")
+tmp_bf_stp_ramp <- bayes_t_test(strat_initial_blocks, "exp", "stepped", "ramped", "strategy")
+tmp_bf_stp_abr <- bayes_t_test(strat_initial_blocks, "exp", "stepped", "abrupt", "strategy")
 ```
-
+```{r}
+print(tmp_bf_abr_ramp)
+print(tmp_bf_stp_ramp)
+print(tmp_bf_stp_abr)
+```
 
 
 2. Same but for the final block
@@ -304,12 +335,17 @@ eta_squared(no_cur_ANOVA)
 TukeyHSD(no_cur_ANOVA)
 ```
 Bayes Factors
-```{r}
+```{r, include=FALSE}
 anovaBF(strategy ~ exp, data = strat_final_blocks, progress=FALSE)
 
-bayes_t_test(strat_final_blocks, "exp", "abrupt", "ramped", "strategy")
-bayes_t_test(strat_final_blocks, "exp", "stepped", "ramped", "strategy")
-bayes_t_test(strat_final_blocks, "exp", "stepped", "abrupt", "strategy")
+tmp_bf_abr_ramp <- bayes_t_test(strat_final_blocks, "exp", "abrupt", "ramped", "strategy")
+tmp_bf_stp_ramp <- bayes_t_test(strat_final_blocks, "exp", "stepped", "ramped", "strategy")
+tmp_bf_stp_abr <- bayes_t_test(strat_final_blocks, "exp", "stepped", "abrupt", "strategy")
+```
+```{r}
+print(tmp_bf_abr_ramp)
+print(tmp_bf_stp_ramp)
+print(tmp_bf_stp_abr)
 ```
 
 3. Compare blocks 1 and 4 for abrupt and gradual data
@@ -409,12 +445,17 @@ TukeyHSD(training_ANOVA)
 ```
 
 Bayes Factors
-```{r}
+```{r, include=FALSE}
 anovaBF(angular_dev_mean ~ exp, data = training_final_trial_set, progress=FALSE)
 
-bayes_t_test(training_final_trial_set, "exp", "abrupt", "ramped", "angular_dev_mean")
-bayes_t_test(training_final_trial_set, "exp", "stepped", "ramped", "angular_dev_mean")
-bayes_t_test(training_final_trial_set, "exp", "stepped", "abrupt", "angular_dev_mean")
+tmp_bf_abr_ramp <- bayes_t_test(training_final_trial_set, "exp", "abrupt", "ramped", "angular_dev_mean")
+tmp_bf_stp_ramp <- bayes_t_test(training_final_trial_set, "exp", "stepped", "ramped", "angular_dev_mean")
+tmp_bf_stp_abr <- bayes_t_test(training_final_trial_set, "exp", "stepped", "abrupt", "angular_dev_mean")
+```
+```{r}
+print(tmp_bf_abr_ramp)
+print(tmp_bf_stp_ramp)
+print(tmp_bf_stp_abr)
 ```
 
 # Combining all data

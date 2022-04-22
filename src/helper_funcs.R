@@ -1,9 +1,9 @@
-library(psych)       # for descriptives
-library(effsize)     # for Cohen's d
+library(psych) # for descriptives
+library(effsize) # for Cohen's d
 library(BayesFactor) # to compute Bayes factors
 
 
-# ---- 
+# ----
 # Analysis
 # input = a vector
 # works well with group_by %>% summarise()
@@ -15,78 +15,87 @@ vector_confint <- function(vector, interval = 0.95) {
   # Mean of sample
   vec_mean <- mean(vector, na.rm = TRUE)
   # Error according to t distribution
-  error <- qt((interval + 1)/2, df = n - 1) * vec_sd / sqrt(n)
+  error <- qt((interval + 1) / 2, df = n - 1) * vec_sd / sqrt(n)
   # Confidence interval as a vector
   # result <- c("lower" = vec_mean - error, "upper" = vec_mean + error)
   return(error)
 }
 
 # get the magnitude (euclidian normal) of a vector (this is faster than R's built in norm)
-norm_vec <- function(vector){sqrt(crossprod(vector))}
+norm_vec <- function(vector) {
+  sqrt(crossprod(vector))
+}
 
 # load data using fread
-loadData <- function(path){
+loadData <- function(path) {
   data_df <- fread(path, stringsAsFactors = TRUE)
-  
+
   return(data_df)
 }
 
 
 # Plotting functions
-plot_desc_group_density <- function(df, group, y, subgroup = NULL, title = "Distributions within Groups"){
+plot_desc_group_density <- function(df, group, y, subgroup = NULL, title = "Distributions within Groups") {
   # plot some density things for visualizing data in groups
   # group, and y are strings
-  if (is.null(subgroup)){
-    p <- df %>% 
-      ggplot(aes(.data[[group]],.data[[y]])) +
-      geom_violin(aes(fill=.data[[group]]), alpha=0.2, draw_quantiles = c(.25, .5, .75), scale = "count") +
+  if (is.null(subgroup)) {
+    p <- df %>%
+      ggplot(aes(.data[[group]], .data[[y]])) +
+      geom_violin(aes(fill = .data[[group]]), alpha = 0.2, draw_quantiles = c(.25, .5, .75), scale = "count") +
       geom_beeswarm(alpha = 0.5) +
-      stat_summary(fun=mean, geom="point", size=3, color="red") 
-  }
-  else{
-    p <- df %>% 
-      ggplot(aes(.data[[group]],.data[[y]], colour = .data[[subgroup]])) +
+      stat_summary(fun = mean, geom = "point", size = 3, color = "red")
+  } else {
+    p <- df %>%
+      ggplot(aes(.data[[group]], .data[[y]], colour = .data[[subgroup]])) +
       geom_beeswarm(dodge.width = .9, alpha = 0.3) +
-      geom_violin(aes(fill=.data[[subgroup]]), alpha=0.2, draw_quantiles = c(.25, .5, .75), scale = "count") 
+      geom_violin(aes(fill = .data[[subgroup]]), alpha = 0.2, draw_quantiles = c(.25, .5, .75), scale = "count")
   }
-  
-  p <- p + 
+
+  p <- p +
     theme_minimal() +
     theme(panel.grid.major.y = element_line(colour = "#CCCCCC")) +
     ggtitle(title)
-  
+
   return(p)
 }
 
-plot_nice_group_density <- function(df, desc_df, group, y, subgroup = NULL, title = "Distributions within Groups"){
+plot_nice_group_density <- function(df, desc_df, group, y, subgroup = NULL, title = "Distributions within Groups") {
   # plot some density things for visualizing data in groups
   # group, and y are strings
   # plot some density things for visualizing data in groups
   # group, and y are strings
-  
+
   desc_temp <- desc_df
-  
-  if (is.null(subgroup)){
+
+  if (is.null(subgroup)) {
     p <- df %>%
-      ggplot(aes(.data[[group]],.data[[y]], colour= .data[[group]])) +
+      ggplot(aes(.data[[group]], .data[[y]], colour = .data[[group]])) +
       geom_beeswarm(alpha = 0.2) +
-      geom_linerange(data = desc_temp,
-                     aes(.data[[group]], means,
-                         ymin = means - ci, ymax = means + ci),
-                     lwd = 2, alpha = 0.8) +
-      geom_point(data = desc_temp,
-                 aes(y = means),
-                 size = 2, alpha = 1)
-  }
-  else{
+      geom_linerange(
+        data = desc_temp,
+        aes(.data[[group]], means,
+          ymin = means - ci, ymax = means + ci
+        ),
+        lwd = 2, alpha = 0.8
+      ) +
+      geom_point(
+        data = desc_temp,
+        aes(y = means),
+        size = 2, alpha = 1
+      )
+  } else {
     p <- df %>%
       ggplot(aes(!!group_tidy, !!y_tidy, colour = !!subgroup_tidy)) +
       geom_beeswarm(dodge.width = .6, alpha = 0.2) +
-      geom_linerange(data = desc_temp,
-                   aes(!!group_tidy, means, colour = !!subgroup_tidy,
-                       ymin = means - ci, ymax = means + ci),
-                   lwd = 3, alpha = 0.5,
-                   position = position_dodge(width = .6))
+      geom_linerange(
+        data = desc_temp,
+        aes(!!group_tidy, means,
+          colour = !!subgroup_tidy,
+          ymin = means - ci, ymax = means + ci
+        ),
+        lwd = 3, alpha = 0.5,
+        position = position_dodge(width = .6)
+      )
   }
 
   p <- p +
@@ -99,51 +108,53 @@ plot_nice_group_density <- function(df, desc_df, group, y, subgroup = NULL, titl
 
 # ----
 # from paper (find)
-bayes_t_test <- function(df, group_title, group1, group2, dv){
+bayes_t_test <- function(df, group_title, group1, group2, dv) {
   # bayes t-test
-  
+
   data <- df %>%
     group_by(NULL) %>%
     filter(.data[[group_title]] == group1 | .data[[group_title]] == group2) %>%
-    select(group_title, dv)
-  
-  res.bayes           <- data.frame(matrix(NA, nrow = 1, ncol = 4))
+    select(all_of(group_title), all_of(dv))
+
+  res.bayes <- data.frame(matrix(NA, nrow = 1, ncol = 4))
   rownames(res.bayes) <- colnames(data)[-1]
   colnames(res.bayes) <- c("BF01", "Postd.Median", "Postd.LB", "Postd.UB")
-  
+
   # the test
-  
+
   i <- 1 # this is useful for iterating
   # Note: code from https://osf.io/gfdjy/
   # Removing NAs
-  data.noNA <- data[!is.na(data[, i+1]), ]
-  
+  data.noNA <- data[!is.na(data[, i + 1]), ]
+
   # Identify independent groups,
   # BF01:
-  tmp  <- ttestBF(pull(filter(data.noNA, .data[[group_title]] == group1)[ , dv]), 
-                  pull(filter(data.noNA, .data[[group_title]] == group2)[ , dv]),
-                  rscale = .707)
+  tmp <- ttestBF(pull(filter(data.noNA, .data[[group_title]] == group1)[, dv]),
+    pull(filter(data.noNA, .data[[group_title]] == group2)[, dv]),
+    rscale = .707
+  )
   BF01 <- 1 / extractBF(tmp)$bf
-  
+
   # Posterior distribution for BF01:
   set.seed(i)
-  tmp  <- ttestBF(pull(filter(data.noNA, .data[[group_title]] == group1)[ , dv]), 
-                  pull(filter(data.noNA, .data[[group_title]] == group2)[ , dv]),
-                  posterior = TRUE, 
-                  iterations = 10000, 
-                  rscale = .707)
+  tmp <- ttestBF(pull(filter(data.noNA, .data[[group_title]] == group1)[, dv]),
+    pull(filter(data.noNA, .data[[group_title]] == group2)[, dv]),
+    posterior = TRUE,
+    iterations = 10000,
+    rscale = .707
+  )
   CI.bayes <- quantile(tmp[, "delta"], probs = c(.03, .97))
-  
+
   res.bayes[i, ] <- c(BF01, median(tmp[, "delta"]), CI.bayes)
-  
+
   # show
-  res.bayes
-  
+  # res.bayes
+
   #    2.6 Posterior model probabilities for equal prior odds ----
   # post.H0:
   null <- res.bayes$BF01 / (1 + res.bayes$BF01)
   # post.H1:
   alt <- 1 / (1 + res.bayes$BF01)
-  
-  return (sprintf("BF01: %.3f, P(D|H0): %.3f, P(D|H1): %.3f, Groups: %s vs %s", res.bayes$BF01, null, alt, group1, group2))
+
+  return(sprintf("BF01: %.3f, P(D|H0): %.3f, P(D|H1): %.3f, Groups: %s vs %s", res.bayes$BF01, null, alt, group1, group2))
 }
