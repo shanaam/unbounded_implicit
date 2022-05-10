@@ -33,6 +33,30 @@ loadData <- function(path) {
   return(data_df)
 }
 
+# load in the baseline corrected data
+load_bl_corrected <- function(path, type = "nocursor") {
+  # load in the large df
+  rot_all <- read_delim(path,
+    delim = ",",
+    col_types = cols(
+      .default = col_double(),
+      targetangle_deg = col_factor(),
+      strat_use = col_factor(),
+      ppt = col_factor(),
+      exp = col_factor(),
+      block_num = col_factor(),
+      reach_type = col_factor()
+    )
+  )
+
+  # separate the nocursor and training data
+  rot_nocur <- rot_all %>%
+    filter(
+      reach_type == type
+    )
+
+  return(rot_nocur)
+}
 
 # Plotting functions
 plot_desc_group_density <- function(df, group, y, subgroup = NULL, title = "Distributions within Groups") {

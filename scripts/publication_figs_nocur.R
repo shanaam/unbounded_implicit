@@ -1,4 +1,4 @@
-#### Script for making publication figures
+#### Script for making publication figures (no cursor data)
 #### Author: Shanaa Modchalingam
 #### Date: April 2022
 
@@ -19,32 +19,6 @@ pallete <- new.env()
 pallete$ramped <- "#f9b82c"
 pallete$stepped <- "#a30f15"
 pallete$abrupt <- "#6aafd2"
-
-
-# load in the baseline corrected data
-load_bl_corrected <- function(path, type = "nocursor") {
-    # load in the large df
-    rot_all <- read_delim(path,
-        delim = ",",
-        col_types = cols(
-            .default = col_double(),
-            targetangle_deg = col_factor(),
-            strat_use = col_factor(),
-            ppt = col_factor(),
-            exp = col_factor(),
-            block_num = col_factor(),
-            reach_type = col_factor()
-        )
-    )
-
-    # separate the nocursor and training data
-    rot_nocur <- rot_all %>%
-        filter(
-            reach_type == type
-        )
-
-    return(rot_nocur)
-}
 
 # make implicit aftereffect
 make_implicit_figure <- function() {
@@ -72,7 +46,7 @@ make_implicit_figure <- function() {
             n = n(), .groups = "drop"
         )
 
-    # make descriptive table
+    # make group table
     data_group <- data_ind %>%
         group_by(exp_block) %>%
         summarise(
@@ -83,7 +57,7 @@ make_implicit_figure <- function() {
         )
 
     # view the data
-    View(head(data_ind))
+    # View(head(data_ind))
 
     # make the figure
     # x axis is the block number, y axis is the angular deviation
@@ -92,7 +66,16 @@ make_implicit_figure <- function() {
         ggplot(aes(
             x = exp_block, y = group_mean,
             colour = exp_block, fill = exp_block
-        )) +
+        ))
+
+    # add data points
+    p <- p +
+        geom_beeswarm(
+            data = data_ind,
+            aes(x = exp_block, y = ind_mean, colour = exp_block),
+            alpha = 0.1,
+            size = 1
+        ) +
         geom_linerange(aes(ymin = group_mean - ci, ymax = group_mean + ci),
             alpha = 0.5, lwd = 2
         ) +
@@ -101,13 +84,20 @@ make_implicit_figure <- function() {
             alpha = 1
         )
 
-    # add individual data points as beeswarm
-    p <- p +
-        geom_beeswarm(
-            data = data_ind,
-            aes(x = exp_block, y = ind_mean, colour = exp_block),
-            alpha = 0.1,
-            size = 1
+    # add theme changes
+    p <- p + theme_classic() +
+        xlab(NULL) + ylab("Implicit Aftereffect (°)") +
+        geom_hline(
+            yintercept = 0,
+            linetype = "solid",
+            size = 0.4,
+            colour = "#CCCCCC"
+        ) +
+        geom_hline(
+            yintercept = c(15, 30),
+            linetype = "dashed",
+            size = 0.4,
+            colour = "#CCCCCC"
         )
 
     # set colour palette
@@ -128,28 +118,6 @@ make_implicit_figure <- function() {
         "Ramped 1", "Ramped 4",
         "Stepped 4"
     ))
-
-    # add theme changes
-    p <- p + theme_classic() +
-        xlab(NULL) + ylab("Implicit Aftereffect (°)") +
-        geom_hline(
-            yintercept = 0,
-            linetype = "solid",
-            size = 0.4,
-            colour = "#CCCCCC"
-        ) +
-        geom_hline(
-            yintercept = 15,
-            linetype = "dashed",
-            size = 0.4,
-            colour = "#CCCCCC"
-        ) +
-        geom_hline(
-            yintercept = 30,
-            linetype = "dashed",
-            size = 0.4,
-            colour = "#CCCCCC"
-        )
 
     # change x axis text labels
     p <- p + scale_x_discrete(
@@ -225,22 +193,39 @@ make_strategy_figure <- function() {
         ggplot(aes(
             x = exp_block, y = group_mean,
             colour = exp_block, fill = exp_block
-        )) +
-        geom_linerange(aes(ymin = group_mean - ci, ymax = group_mean + ci),
-            alpha = 0.5, lwd = 2
+        ))
+
+    # add theme changes
+    p <- p + theme_classic() +
+        xlab(NULL) + ylab("Explicit Strategy (°)") +
+        geom_hline(
+            yintercept = 0,
+            linetype = "solid",
+            size = 0.4,
+            colour = "#CCCCCC"
         ) +
-        geom_point(aes(shape = exp_block),
-            size = 2,
-            alpha = 1
+        geom_hline(
+            yintercept = c(15, 30),
+            linetype = "dashed",
+            size = 0.4,
+            colour = "#CCCCCC"
         )
 
-    # add individual data points as beeswarm
+
+    # add data
     p <- p +
         geom_beeswarm(
             data = data_ind,
             aes(x = exp_block, y = ind_mean, colour = exp_block),
             alpha = 0.1,
             size = 1
+        ) +
+        geom_linerange(aes(ymin = group_mean - ci, ymax = group_mean + ci),
+            alpha = 0.5, lwd = 2
+        ) +
+        geom_point(aes(shape = exp_block),
+            size = 2,
+            alpha = 1
         )
 
     # set colour palette
@@ -261,28 +246,6 @@ make_strategy_figure <- function() {
         "Ramped 1", "Ramped 4",
         "Stepped 4"
     ))
-
-    # add theme changes
-    p <- p + theme_classic() +
-        xlab(NULL) + ylab("Explicit Strategy (°)") +
-        geom_hline(
-            yintercept = 0,
-            linetype = "solid",
-            size = 0.4,
-            colour = "#CCCCCC"
-        ) +
-        geom_hline(
-            yintercept = 15,
-            linetype = "dashed",
-            size = 0.4,
-            colour = "#CCCCCC"
-        ) +
-        geom_hline(
-            yintercept = 30,
-            linetype = "dashed",
-            size = 0.4,
-            colour = "#CCCCCC"
-        )
 
     # change x axis text labels
     p <- p + scale_x_discrete(
