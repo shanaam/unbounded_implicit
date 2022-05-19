@@ -114,34 +114,31 @@ add_trial_set <- function(df) {
   # these if statements are repetitive at the moment. I've kept them in case different trials need to be isolated for different experiment protocols
   x <- as.double(df[1])
   if (df[2] == "ramped") {
-    if (x <= 69) {
+    if (x <= 21) {
       return(1)
     } # first block
-    else if (x >= 127 & x <= 129) {
+    else if (x >= 79 & x <= 84) {
       return(2)
     } # the end of training
-    else if (x >= 322) {
+    else if (x >= 385) {
       return(3)
-    } # the final 9 trials
-    else {
+    } else {
       return(10)
     }
   } else if (df[2] == "stepped") {
-    if (x <= 69) {
+    if (x <= 3) {
       return(1)
-    } else if (x >= 307 & x <= 309) {
-      return(2)
-    } else if (x >= 322) {
+    } else if (x >= 385) {
       return(3)
     } else {
       return(10)
     }
   } else { # for longAbrupt
-    if (x <= 69) {
+    if (x <= 3) {
       return(1)
-    } else if (x >= 109 & x <= 111) {
+    } else if (x >= 79 & x <= 84) {
       return(2)
-    } else if (x >= 322) {
+    } else if (x >= 385) {
       return(3)
     } else {
       return(10)

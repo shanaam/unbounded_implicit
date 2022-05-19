@@ -62,9 +62,28 @@ make_learning_curve <- function() {
     # add vertial lines at the block boundaries
     p <- p +
         geom_vline(
-            xintercept = c(0, 102, 204, 306, 408), colour = "#CCCCCC",
+            xintercept = c(0, 102, 204, 306), colour = "#CCCCCC",
             linetype = "dashed"
         )
+
+    # add a grey box behind trial sets
+    p <- p +
+        geom_rect(
+            xmin = 1, xmax = 3,
+            ymin = -5, ymax = 60,
+            colour = "#CCCCCC", fill = "#CCCCCC"
+        ) +
+        geom_rect(
+            xmin = 79, xmax = 84,
+            ymin = -5, ymax = 60,
+            colour = "#CCCCCC", fill = "#CCCCCC"
+        ) +
+        geom_rect(
+            xmin = 385, xmax = 390,
+            ymin = -5, ymax = 60,
+            colour = "#CCCCCC", fill = "#CCCCCC"
+        )
+
     # add the confidence intervals and data
     p <- p + geom_ribbon(aes(
         x = trial_num_cont,
@@ -90,7 +109,7 @@ make_learning_curve <- function() {
     # set x and y axis labels
     p <- p +
         labs(
-            x = "Trial Number",
+            x = "Block Number",
             y = "Hand Path Correction (°)"
         )
     # set y tick labels
@@ -99,8 +118,18 @@ make_learning_curve <- function() {
             limits = c(-5, 65),
             breaks = c(0, 15, 30, 45, 60),
             labels = c(0, 15, 30, 45, 60)
+        ) +
+        scale_x_continuous(
+            limits = c(0, 390),
+            breaks = c(0, 102, 204, 306),
+            labels = c(1, 2, 3, 4)
         )
 
+    # set font size to 11
+    p <- p +
+        theme(text = element_text(size = 11))
+    # remove the legend
+    p <- p + theme(legend.position = "none")
     return(p)
 }
 
@@ -136,8 +165,6 @@ make_trial_set_figure <- function() {
             n = n(), .groups = "drop"
         )
 
-    View(data_ind)
-
     # make the plot
     # x axis is trial set, y axis is mean angular deviation, colour is exp
     p <- data_group %>%
@@ -146,6 +173,21 @@ make_trial_set_figure <- function() {
             color = exp_trial_set
         ))
 
+    # add theme changes
+    p <- p + theme_classic() +
+        xlab("Trial Set") + ylab(NULL) +
+        geom_hline(
+            yintercept = c(0, 60),
+            linetype = "solid",
+            size = 0.4,
+            colour = "#CCCCCC"
+        ) +
+        geom_hline(
+            yintercept = c(15, 30, 45),
+            linetype = "dashed",
+            size = 0.4,
+            colour = "#CCCCCC"
+        )
     # add data points
     p <- p +
         geom_beeswarm(
@@ -162,39 +204,23 @@ make_trial_set_figure <- function() {
             alpha = 1, size = 2
         )
 
-    # add theme changes
-    p <- p + theme_classic() +
-        xlab(NULL) + ylab("Implicit Aftereffect (°)") +
-        geom_hline(
-            yintercept = 0,
-            linetype = "solid",
-            size = 0.4,
-            colour = "#CCCCCC"
-        ) +
-        geom_hline(
-            yintercept = c(15, 30),
-            linetype = "dashed",
-            size = 0.4,
-            colour = "#CCCCCC"
-        )
-
     # set colour palette
     p <- p + scale_color_manual(values = c(
         pallete$abrupt, pallete$abrupt, pallete$abrupt,
         pallete$ramped, pallete$ramped, pallete$ramped,
-        pallete$stepped, pallete$stepped, pallete$stepped
+        pallete$stepped, pallete$stepped
     )) + scale_shape_manual(values = c(
         1, 1, 19,
         1, 1, 19,
-        1, 1, 19
+        1, 19
     ))
 
     # change x axis labels
     p <- p + scale_x_discrete(
         labels = c(
-            "Ai", "Ab1", "Ab4",
-            "Ri", "Rb1", "Rb4",
-            "Si", "Sb4i", "Sb4"
+            "Init", "1", "4",
+            "Init", "1", "4",
+            "Init", "4"
         )
     )
 
@@ -206,6 +232,10 @@ make_trial_set_figure <- function() {
             labels = c(0, 15, 30, 45, 60)
         )
 
+    # set font size to 11
+    p <- p +
+        theme(text = element_text(size = 11))
+
     # remove the legend
     p <- p + theme(legend.position = "none")
 
@@ -214,12 +244,12 @@ make_trial_set_figure <- function() {
 
 # save learning curve figure
 ggsave(make_learning_curve(),
-    height = 4, width = 6, device = "svg",
-    filename = "data/paper_figs/learning_curve.svg"
+    height = 4, width = 4.5, device = "pdf",
+    filename = "data/paper_figs/learning_curve.pdf"
 )
 
 # save trial set figure
 ggsave(make_trial_set_figure(),
-    height = 4, width = 3, device = "svg",
-    filename = "data/paper_figs/trial_set.svg"
+    height = 4, width = 2, device = "pdf",
+    filename = "data/paper_figs/trial_set.pdf"
 )

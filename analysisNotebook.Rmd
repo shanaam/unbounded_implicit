@@ -1060,15 +1060,4 @@ p <- desc_temp %>%
   
 p
 ```
-Measured explicit learning = markedly lower
-
-# Plots for print
-```{r}
-plot_nice_group_density(training_final_trial_set, exp, angular_dev_mean, title = "Block 4 Adaptation")
-```
-
-```{r}
-#test
-mutate(rot_nocur, distance = sqrt(mousex_px^2 + mousey_px^2)) -> test
-```
 
