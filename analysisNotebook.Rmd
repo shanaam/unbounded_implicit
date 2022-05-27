@@ -515,6 +515,137 @@ p
 
 # ggsave(p, height = 9, width = 16, device = "svg", filename = "data/paper_figs/all_reaches_norm.svg")
 ```
+# Last block of stepped
+
+```{r}
+ind_nocur_stepped_detailed_summary <- rot_nocur %>%
+  filter(exp == "stepped", block_num == 4, strat_use == 0) %>%
+  group_by(ppt, block_num_detailed) %>%
+  summarise(ind_mean = mean(angular_dev), 
+            sd = sd(angular_dev), 
+            ci = vector_confint(angular_dev),
+            n = n(), .groups = "drop")
+ind_nocur_stepped_detailed_summary$block_num_detailed <- factor(ind_nocur_stepped_detailed_summary$block_num_detailed)
+group_nocur_stepped_detailed_summary <- ind_nocur_stepped_detailed_summary %>%
+  group_by(block_num_detailed) %>%
+  summarise(mean_devs = mean(ind_mean), 
+            sd = sd(ind_mean), 
+            ci = vector_confint(ind_mean),
+            n = n(), .groups = "drop")
+
+group_nocur_stepped_detailed_summary
+```
+```{r}
+#plot
+plot_desc_group_density(ind_nocur_stepped_detailed_summary, "block_num_detailed", "ind_mean", title = "Block 4 Stepped - no decay")
+```
+
+# decay slopes
+
+```{r}
+    data <- load_bl_corrected("data/bl_corrected/bl_corrected_data.csv",
+        type = "nocursor"
+    )
+
+    # add a column with 1-9 repeating
+    data <- data %>%
+        mutate(trial_in_block = rep(1:9, length.out = nrow(data)))
+
+    # make individual table
+    data_ind <- data %>%
+        group_by(exp, ppt, strat_use, block_num) %>%
+        summarise(
+            ind_mean = mean(angular_dev),
+            sd = sd(angular_dev),
+            ci = vector_confint(angular_dev),
+            slope = decay_fit(trial_in_block, angular_dev)[2],
+            intercept = decay_fit(trial_in_block, angular_dev)[1],
+            n = n(), .groups = "drop"
+        )
+
+    # make group table
+    data_group <- data_ind %>%
+        group_by(exp, strat_use, block_num) %>%
+        summarise(
+            group_slope_mean = mean(slope),
+            slope_ci = vector_confint(slope),
+            group_intercept_mean = mean(intercept),
+            intercept_ci = vector_confint(intercept),
+            n = n(), .groups = "drop"
+        )
+        # add a nested vector column
+    data_group <- data_group %>%
+        mutate(trial_in_block = list((c(1:9))))
+
+    # unnest
+    data_group <- data_group %>%
+        unnest_longer(trial_in_block)
+
+    # make a column with inferred y values
+    data_group <- data_group %>%
+        mutate(y_inferred = group_slope_mean * trial_in_block +
+            group_intercept_mean)
+
+
+    # plot the figure using data_group,
+    # split by blocks on x axis, and by experiment on colour
+    p <- data_group %>%
+        ggplot(aes(
+            x = trial_in_block, y = y_inferred,
+            colour = exp,
+        )) +
+        geom_line(
+            aes(y = y_inferred),
+            size = 1,
+            alpha = 0.7
+        ) +
+        facet_grid(
+            strat_use ~ block_num,
+            space = "free"
+        ) +
+        theme_minimal()
+
+    # set y axis from 0 to 45
+    p <- p + scale_y_continuous(
+        limits = c(0, 45),
+        breaks = c(0, 15, 30, 45),
+        labels = c(0, 15, 30, 45)
+    )
+
+    p
+```
+
+
+```{r}
+#performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
+temp_ANOVA <- data_ind %>% 
+  filter(strat_use == '0') %>%
+  ezANOVA(wid = ppt,
+        dv = slope, 
+        within = .(block_num),
+        between = exp,
+        detailed = TRUE)
+
+#show and ANOVA + assumptions
+print(temp_ANOVA$ANOVA)
+```
+
+```{r}
+#performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
+temp_ANOVA <- data_ind %>% 
+  filter(strat_use == '1') %>%
+  ezANOVA(wid = ppt,
+        dv = slope, 
+        within = .(block_num),
+        between = exp,
+        detailed = TRUE)
+#show and ANOVA + assumptions
+print(temp_ANOVA$ANOVA)
+```
+
+
+
+
 
 
 # Slopes of no-cusor reaches over time
@@ -740,101 +871,6 @@ intercept_aov <- ezANOVA( data = rot_nocur_block_summary_ppt_nostrat,
                            return_aov = TRUE)
 print(intercept_aov)
 ```
-
-# Paper Figures
-
-### Implicit aftereffects
-```{r}
-wo_strat_blocks <- nocur_summary %>% 
-  filter(strat_use == '0') %>% #only the implicit aftereffects
-  filter((exp == 'stepped' & block_num == '4') | 
-           (exp == 'abrupt' & block_num == '1') |
-           (exp == 'ramped' & block_num == '1') | 
-           (exp == 'abrupt' & block_num == '4') |
-           (exp == 'ramped' & block_num == '4')) %>%
-  unite(exp_block, exp, block_num)
-
-# make descriptive df
-desc_df <- wo_strat_blocks %>%
-  group_by(exp_block) %>%
-  summarise(means = mean(mean_devs), 
-            sd = sd(mean_devs), 
-            ci = vector_confint(mean_devs),
-            n = n(), .groups = "drop")
-
-# plot
-p <- plot_nice_group_density(wo_strat_blocks,
-                        desc_df,
-                        group = "exp_block", 
-                        y = "mean_devs", 
-                        title = "Implicit Aftereffects")
-
-# set colour
-p <- p + scale_color_manual(values = c(cbp1[3],
-                                  cbp1[3],
-                                  cbp1[1],
-                                  cbp1[1],
-                                  cbp1[2]), labels = c("Abrupt Block 1", 
-                                                       "Abrupt Block 4",
-                                                       "Ramped Block 1",
-                                                       "Ramped Block 4",
-                                                       "Stepped Block 4"))
-p <- p + theme(panel.grid.major.y = element_line(colour = "#CCCCCC"),
-               panel.grid.major.x = element_blank(),
-               axis.text.x=element_blank()) + 
-  xlab(NULL) + ylab("reach aftereffects without strategy (°)")
-p
-
-ggsave(p, height = 5, width = 4, device = "png", filename = "data/paper_figs/implicit_aes.png")
-```
-
-### Explicit Strategies
-```{r}
-strat_blocks <- nocur_summary_wide %>% 
-  filter((exp == 'stepped' & block_num == '4') | 
-           (exp == 'abrupt' & block_num == '1') |
-           (exp == 'ramped' & block_num == '1') | 
-           (exp == 'abrupt' & block_num == '4') |
-           (exp == 'ramped' & block_num == '4')) %>%
-  unite(exp_block, exp, block_num)
-
-# make descriptive df
-desc_df <- strat_blocks %>%
-  group_by(exp_block) %>%
-  summarise(means = mean(strategy), 
-            sd = sd(strategy), 
-            ci = vector_confint(strategy),
-            n = n(), .groups = "drop")
-
-# plot
-p <- plot_nice_group_density(strat_blocks,
-                        desc_df,
-                        group = "exp_block", 
-                        y = "strategy", 
-                        title = "Explicit Strategies")
-
-# set colour
-p <- p + scale_color_manual(values = c(cbp1[3],
-                                  cbp1[3],
-                                  cbp1[1],
-                                  cbp1[1],
-                                  cbp1[2]), labels = c("Abrupt Block 1", 
-                                                       "Abrupt Block 4",
-                                                       "Ramped Block 1",
-                                                       "Ramped Block 4",
-                                                       "Stepped Block 4"))
-p <- p + theme(panel.grid.major.y = element_line(colour = "#CCCCCC"),
-               panel.grid.major.x = element_blank(),
-               axis.text.x=element_blank()) + 
-  xlab(NULL) + ylab("reach aftereffects without strategy (°)")
-p
-
-ggsave(p, height = 5, width = 4, device = "png", filename = "data/paper_figs/explicit_aes.png")
-```
-
-
-
-
 
 
 

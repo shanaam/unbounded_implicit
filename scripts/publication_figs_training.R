@@ -16,7 +16,7 @@ library(ggbeeswarm)
 # note: R has no has tables, but environments can work like one
 # (they are hashed under the hood)
 pallete <- new.env()
-pallete$ramped <- "#f9b82c"
+pallete$ramped <- "#f07c04"
 pallete$stepped <- "#a30f15"
 pallete$abrupt <- "#6aafd2"
 

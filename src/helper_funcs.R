@@ -21,6 +21,24 @@ vector_confint <- function(vector, interval = 0.95) {
   return(error)
 }
 
+# bootstrapped confidence intervals
+# input = a vector
+bootstr_confint <- function(vector, interval = 0.95) {
+  # incomplete
+}
+
+# slope fitting function for the decay data
+decay_fit <- function(x_vec, y_vec) {
+  # Fit a line to the data
+  lm_fit <- lm(y_vec ~ x_vec)
+
+  # Get the slope and intercept
+  coefs <- coef(lm_fit)
+
+  # return the slope and intercept
+  return(coefs)
+}
+
 # get the magnitude (euclidian normal) of a vector (this is faster than R's built in norm)
 norm_vec <- function(vector) {
   sqrt(crossprod(vector))
