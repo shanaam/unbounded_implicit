@@ -26,6 +26,8 @@ apply_blcorrection <- function(rot_df_row, bl_df) {
 
 #
 add_nocur_block_num <- function(df) {
+  # input: df,
+  # returns: int
   if (df[2] == "ramped") {
     if (df[1] < 20) {
       return(1)
@@ -63,6 +65,8 @@ add_training_block_num <- function(df) {
   # given a df with experiment and block number
   # these if statements are repetitive at the moment.
   # Kept in case different experiments need different trials
+  # input: df,
+  # returns: int
   x <- as.double(df[1])
   if (df[2] == "ramped") {
     if (x <= 69) {
@@ -112,6 +116,8 @@ add_training_block_num <- function(df) {
 add_trial_set <- function(df) {
   # given a df with experiment and trial sets
   # these if statements are repetitive at the moment. I've kept them in case different trials need to be isolated for different experiment protocols
+  # input: df,
+  # returns: int
   x <- as.double(df[1])
   if (df[2] == "ramped") {
     if (x <= 21) {
@@ -147,6 +153,8 @@ add_trial_set <- function(df) {
 }
 
 detailed_block_w_trial_num <- function(trial_num) {
+  # input: int (trial_num),
+  # returns: float (detailed block num)
   if (trial_num <= 63) {
     return(1.1)
   } else if (trial_num <= 102) {

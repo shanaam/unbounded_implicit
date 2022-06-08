@@ -400,6 +400,43 @@ make_decay_figure <- function() {
     data <- data %>%
         mutate(trial_in_block = rep(1:9, length.out = nrow(data)))
 
+    # select useful columns
+    data <- data %>%
+        select(exp, ppt, strat_use, block_num, trial_in_block, angular_dev) %>%
+        group_by(exp, ppt, strat_use, block_num, trial_in_block) %>%
+        summarise(
+            angular_dev_m = mean(angular_dev),
+            n = n()
+        ) %>%
+        pivot_wider(
+            names_from = strat_use,
+            names_prefix = "strat_",
+            values_from = angular_dev_m
+        ) %>%
+        mutate(strategy = strat_1 - strat_0) %>%
+        pivot_longer(
+            cols = 6:8,
+            names_to = "strat_use", values_to = "angular_dev"
+        )
+
+    # in strat_use, replace "strat_0" with "Without Strategy"
+    # and "strat_1" with "With Strategy",
+    # and "strategy" with "Explicit Strategy"
+    data <- data %>%
+        mutate(strat_use = ifelse(strat_use == "strat_0", "Without Strategy",
+            ifelse(strat_use == "strat_1", "With Strategy",
+                ifelse(strat_use == "strategy", "Explicit Strategy",
+                    strat_use
+                )
+            )
+        ))
+
+    # make strat_use a factor
+    data <- data %>%
+        mutate(strat_use = factor(strat_use,
+            levels = c("Without Strategy", "With Strategy", "Explicit Strategy")
+        ))
+
     # make individual table
     data_ind <- data %>%
         group_by(exp, ppt, strat_use, block_num) %>%
@@ -443,7 +480,26 @@ make_decay_figure <- function() {
         ggplot(aes(
             x = trial_in_block, y = angular_dev,
             colour = exp, fill = exp
-        )) +
+        ))
+
+    # add theme changes
+    p <- p + theme_classic() +
+        xlab("Trial in Block") + ylab("Hand Deviation (°)") +
+        geom_hline(
+            yintercept = 0,
+            linetype = "solid",
+            size = 0.4,
+            colour = "#CCCCCC"
+        ) +
+        geom_hline(
+            yintercept = c(15, 30),
+            linetype = "dashed",
+            size = 0.4,
+            colour = "#CCCCCC"
+        )
+
+    # add data
+    p <- p +
         #         geom_line(
         # aes(y = y_inferred),
         # size = 1,
@@ -454,21 +510,43 @@ make_decay_figure <- function() {
             se = TRUE,
             level = 0.99,
             size = 0.5,
-            alpha = 0.5
+            alpha = 0.3
         ) +
         facet_grid(
             strat_use ~ block_num,
             space = "free"
-        ) +
-        theme_minimal()
+        )
 
     # set y axis from 0 to 45
     p <- p + scale_y_continuous(
-        limits = c(0, 45),
-        breaks = c(0, 15, 30, 45),
-        labels = c(0, 15, 30, 45)
+        limits = c(0, 35),
+        breaks = c(0, 15, 30),
+        labels = c(0, 15, 30)
+    ) + scale_x_continuous(
+        breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9)
     )
 
+    # set manual colour palette
+    p <- p + scale_color_manual(values = c(
+        pallete$abrupt,
+        pallete$ramped,
+        pallete$stepped
+    )) + scale_fill_manual(values = c(
+        pallete$abrupt,
+        pallete$ramped,
+        pallete$stepped
+    ))
+
+    # theme changes
+    p <- p +
+        theme(
+            strip.background = element_blank(),
+        )
+    
+    # remove the legend
+    p <- p + theme(legend.position = "none")
+
+    # return
     return(p)
 }
 
@@ -493,6 +571,12 @@ ggsave(make_strategy_figure(),
 
 # save the decay figure
 ggsave(make_decay_figure(),
-    height = 4, width = 9, device = "pdf",
+    height = 6, width = 7, device = "pdf",
     filename = "data/paper_figs/decay_aes.pdf"
+)
+
+# save the decay figure
+ggsave(make_decay_figure(),
+    height = 6, width = 7, device = "svg",
+    filename = "data/paper_figs/decay_aes.svg"
 )

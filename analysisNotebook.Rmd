@@ -20,6 +20,7 @@ library(tidyverse)
 library(ggbeeswarm)
 library(ez) #for ANOVAs
 library(effectsize) # for eta-squared
+library(BayesFactor)
 
 ```
 
@@ -540,9 +541,10 @@ group_nocur_stepped_detailed_summary
 plot_desc_group_density(ind_nocur_stepped_detailed_summary, "block_num_detailed", "ind_mean", title = "Block 4 Stepped - no decay")
 ```
 
-# decay slopes
+# Decay Slopes
 
 ```{r}
+    # load in the DECAY data
     data <- load_bl_corrected("data/bl_corrected/bl_corrected_data.csv",
         type = "nocursor"
     )
@@ -550,6 +552,43 @@ plot_desc_group_density(ind_nocur_stepped_detailed_summary, "block_num_detailed"
     # add a column with 1-9 repeating
     data <- data %>%
         mutate(trial_in_block = rep(1:9, length.out = nrow(data)))
+
+    # select useful columns
+    data <- data %>%
+        select(exp, ppt, strat_use, block_num, trial_in_block, angular_dev) %>%
+        group_by(exp, ppt, strat_use, block_num, trial_in_block) %>%
+        summarise(
+            angular_dev_m = mean(angular_dev),
+            n = n()
+        ) %>%
+        pivot_wider(
+            names_from = strat_use,
+            names_prefix = "strat_",
+            values_from = angular_dev_m
+        ) %>%
+        mutate(strategy = strat_1 - strat_0) %>%
+        pivot_longer(
+            cols = 6:8,
+            names_to = "strat_use", values_to = "angular_dev"
+        )
+
+    # in strat_use, replace "strat_0" with "Without Strategy"
+    # and "strat_1" with "With Strategy",
+    # and "strategy" with "Explicit Strategy"
+    data <- data %>%
+        mutate(strat_use = ifelse(strat_use == "strat_0", "Without Strategy",
+            ifelse(strat_use == "strat_1", "With Strategy",
+                ifelse(strat_use == "strategy", "Explicit Strategy",
+                    strat_use
+                )
+            )
+        ))
+
+    # make strat_use a factor
+    data <- data %>%
+        mutate(strat_use = factor(strat_use,
+            levels = c("Without Strategy", "With Strategy", "Explicit Strategy")
+        ))
 
     # make individual table
     data_ind <- data %>%
@@ -573,7 +612,8 @@ plot_desc_group_density(ind_nocur_stepped_detailed_summary, "block_num_detailed"
             intercept_ci = vector_confint(intercept),
             n = n(), .groups = "drop"
         )
-        # add a nested vector column
+
+    # add a nested vector column
     data_group <- data_group %>%
         mutate(trial_in_block = list((c(1:9))))
 
@@ -586,40 +626,14 @@ plot_desc_group_density(ind_nocur_stepped_detailed_summary, "block_num_detailed"
         mutate(y_inferred = group_slope_mean * trial_in_block +
             group_intercept_mean)
 
-
-    # plot the figure using data_group,
-    # split by blocks on x axis, and by experiment on colour
-    p <- data_group %>%
-        ggplot(aes(
-            x = trial_in_block, y = y_inferred,
-            colour = exp,
-        )) +
-        geom_line(
-            aes(y = y_inferred),
-            size = 1,
-            alpha = 0.7
-        ) +
-        facet_grid(
-            strat_use ~ block_num,
-            space = "free"
-        ) +
-        theme_minimal()
-
-    # set y axis from 0 to 45
-    p <- p + scale_y_continuous(
-        limits = c(0, 45),
-        breaks = c(0, 15, 30, 45),
-        labels = c(0, 15, 30, 45)
-    )
-
-    p
 ```
+
 
 
 ```{r}
 #performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
 temp_ANOVA <- data_ind %>% 
-  filter(strat_use == '0') %>%
+  filter(strat_use == 'Without Strategy') %>%
   ezANOVA(wid = ppt,
         dv = slope, 
         within = .(block_num),
@@ -629,11 +643,27 @@ temp_ANOVA <- data_ind %>%
 #show and ANOVA + assumptions
 print(temp_ANOVA$ANOVA)
 ```
+```{r}
+# this is the classical anova equivalent -- numbers are the same as above
+summary(aov(slope ~ exp*block_num + Error(ppt/(exp*block_num)),
+            data=filter(data_ind, strat_use == 'Without Strategy') ))
+```
+```{r}
+# mixed effects bayes anova
+bf = anovaBF(slope ~ exp*block_num + ppt, 
+             data=filter(data_ind, strat_use == 'Without Strategy'), 
+             whichRandom="ppt")
+bf
+
+```
+```{r}
+plot(bf)
+```
 
 ```{r}
 #performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
 temp_ANOVA <- data_ind %>% 
-  filter(strat_use == '1') %>%
+  filter(strat_use == 'With Strategy') %>%
   ezANOVA(wid = ppt,
         dv = slope, 
         within = .(block_num),
@@ -643,6 +673,19 @@ temp_ANOVA <- data_ind %>%
 print(temp_ANOVA$ANOVA)
 ```
 
+Bayes Factors
+```{r}
+#performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
+temp_ANOVA <- data_ind %>% 
+  filter(strat_use == 'Explicit Strategy') %>%
+  ezANOVA(wid = ppt,
+        dv = slope, 
+        within = .(block_num),
+        between = exp,
+        detailed = TRUE)
+#show and ANOVA + assumptions
+print(temp_ANOVA$ANOVA)
+```
 
 
 
