@@ -749,11 +749,14 @@ ggsave(make_decay_figure(),
     filename = "data/paper_figs/decay_aes.pdf"
 )
 
+ggsave(make_decay_implicit_figure(),
+       height = 6, width = 7, device = "pdf",
+       filename = "data/paper_figs/decay_ind_implicit_aes.pdf"
+)
 
 
-
-test <- data %>% 
-  filter(ppt == "001_longAbruptExp", block_num == 1,
-         strat_use == "Without Strategy")
-
-reg_confints(test$trial_in_block, test$angular_dev)
+# test <- data %>% 
+#   filter(ppt == "001_longAbruptExp", block_num == 1,
+#          strat_use == "Without Strategy")
+# 
+# reg_confints(test$trial_in_block, test$angular_dev)
