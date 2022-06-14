@@ -500,17 +500,18 @@ make_decay_figure <- function() {
 
     # add data
     p <- p +
-        #         geom_line(
-        # aes(y = y_inferred),
-        # size = 1,
-        # alpha = 0.7
-        # ) +
+        geom_line(
+            data = data_group,
+            aes(y = y_inferred),
+            size = 1,
+            alpha = 1
+        ) +
         geom_smooth(
             method = "lm",
             se = TRUE,
             level = 0.99,
             size = 0.5,
-            alpha = 0.3
+            alpha = 0.1
         ) +
         facet_grid(
             strat_use ~ block_num,
@@ -523,7 +524,7 @@ make_decay_figure <- function() {
         breaks = c(0, 15, 30),
         labels = c(0, 15, 30)
     ) + scale_x_continuous(
-        breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9)
+        breaks = c(3, 6, 9)
     )
 
     # set manual colour palette
@@ -542,7 +543,7 @@ make_decay_figure <- function() {
         theme(
             strip.background = element_blank(),
         )
-    
+
     # remove the legend
     p <- p + theme(legend.position = "none")
 
@@ -573,10 +574,4 @@ ggsave(make_strategy_figure(),
 ggsave(make_decay_figure(),
     height = 6, width = 7, device = "pdf",
     filename = "data/paper_figs/decay_aes.pdf"
-)
-
-# save the decay figure
-ggsave(make_decay_figure(),
-    height = 6, width = 7, device = "svg",
-    filename = "data/paper_figs/decay_aes.svg"
 )

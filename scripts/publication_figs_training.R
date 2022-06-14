@@ -20,6 +20,154 @@ pallete$ramped <- "#f07c04"
 pallete$stepped <- "#a30f15"
 pallete$abrupt <- "#6aafd2"
 
+# function to plot perturbations
+make_method_plot <- function() {
+    # load in the data
+    data <- load_bl_corrected("data/bl_corrected/bl_corrected_data.csv",
+        type = "reach"
+    )
+
+    # filter for one participant in each exp
+    data <- data %>%
+        filter(ppt == "001_longAbruptExp" |
+            ppt == "001_gradualExp" |
+            ppt == "1_stepwiseExp") %>%
+        select(exp, trial_num_cont, rotation_angle, block_num_detailed)
+
+    # seperate out block 1 of ramped
+    data_ramped <- data %>%
+        filter(exp == "ramped" & trial_num_cont <= 84)
+
+    # remove block 1 of ramped from data
+    data <- data %>%
+        filter(!(exp == "ramped" & trial_num_cont <= 84))
+
+    # multiply rotation_angle by -1 to make it consistent with the other plots
+    data <- data %>%
+        mutate(rotation_angle = -1 * rotation_angle)
+    data_ramped <- data_ramped %>%
+        mutate(rotation_angle = -1 * rotation_angle)
+
+    # make a copy for baseline
+    data_bl_1 <- data %>%
+        filter(
+            exp == "stepped",
+            block_num_detailed == 1.1
+        )
+    data_bl_2 <- data %>%
+        filter(
+            exp == "stepped",
+            block_num_detailed == 1.2
+        )
+
+    # correct the trial nums
+    data_bl_1$trial_num_cont <- data_bl_1$trial_num_cont - 102 + 18 + 1
+    data_bl_2$trial_num_cont <- data_bl_2$trial_num_cont - 102 + 9 + 1
+
+    # bind the baseline data
+    data_bl <- rbind(data_bl_1, data_bl_2)
+    data_bl$exp <- "baseline"
+    data_bl$rotation_angle <- 0
+
+    # set up the plot
+    p <- data %>%
+        ggplot(aes(
+            x = trial_num_cont, y = rotation_angle,
+            color = exp
+        ))
+
+    # add classic theme
+    p <- p + theme_classic()
+
+    # add a solid horizontal lines at 0 and 60 and dashed lines at 15, 30, 45
+    p <- p +
+        geom_hline(
+            yintercept = c(0, 60), size = 0.4,
+            colour = "#CCCCCC", linetype = "solid"
+        ) +
+        geom_hline(
+            yintercept = c(15, 30, 45), size = 0.4,
+            colour = "#CCCCCC", linetype = "dashed"
+        )
+
+    # add vertial lines at the block boundaries
+    p <- p +
+        geom_vline(
+            xintercept = c(0, 102, 204, 306), colour = "#CCCCCC",
+            linetype = "dashed"
+        )
+
+    # add a grey box behind trial sets
+    p <- p +
+        geom_rect(
+            xmin = -8, xmax = 0,
+            ymin = -5, ymax = 60,
+            colour = "#CCCCCC", fill = "#CCCCCC"
+        )
+
+    # add visuomotor rotations
+    p <- p +
+        geom_line(data = data_ramped, lwd = 2)
+
+    # add a geom_line for each block in baseline
+    for (block_num in unique(data_bl$block_num_detailed)) {
+        p <- p +
+            geom_line(
+                data = data_bl %>%
+                    filter(block_num_detailed == block_num),
+                lwd = 2
+            )
+    }
+
+    # add a geom_line for each block
+    for (block_num in unique(data$block_num_detailed)) {
+        p <- p +
+            geom_line(
+                data = data %>%
+                    filter(block_num_detailed == block_num),
+                lwd = 2
+            )
+    }
+
+    # set colour palette
+    p <- p +
+        scale_color_manual(values = c(
+            pallete$abrupt, "#cccccc", pallete$ramped, pallete$stepped
+        ), labels = c(
+            "Abrupt", "Baseline", "Ramped", "Stepped"
+        )) + scale_fill_manual(values = c(
+            pallete$abrupt, "#cccccc", pallete$ramped, pallete$stepped
+        ), labels = c(
+            "Abrupt", "Baseline", "Ramped", "Stepped"
+        ))
+
+    # set x and y axis labels
+    p <- p +
+        labs(
+            x = "Block Number",
+            y = "Visuomotor Rotation (°)"
+        )
+    # set y tick labels
+    p <- p +
+        scale_y_continuous(
+            limits = c(-5, 65),
+            breaks = c(0, 15, 30, 45, 60),
+            labels = c(0, -15, -30, -45, -60)
+        ) +
+        scale_x_continuous(
+            limits = c(-83, 390),
+            breaks = c(-83, 0, 102, 204, 306),
+            labels = c("Baseline", 1, 2, 3, 4)
+        )
+
+    # set font size to 11
+    # p <- p +
+    # theme(text = element_text(size = 11))
+    # remove the legend
+    p <- p + theme(legend.position = "none")
+    return(p)
+}
+
 # function to plot the learning curve
 make_learning_curve <- function() {
     # load in the data
@@ -126,8 +274,8 @@ make_learning_curve <- function() {
         )
 
     # set font size to 11
-    p <- p +
-        theme(text = element_text(size = 11))
+    #  p <- p +
+    # theme(text = element_text(size = 11))
     # remove the legend
     p <- p + theme(legend.position = "none")
     return(p)
@@ -233,14 +381,20 @@ make_trial_set_figure <- function() {
         )
 
     # set font size to 11
-    p <- p +
-        theme(text = element_text(size = 11))
+    # p <- p +
+    # theme(text = element_text(size = 11))
 
     # remove the legend
     p <- p + theme(legend.position = "none")
 
     return(p)
 }
+
+# save the method figure
+ggsave(make_method_plot(),
+    height = 3, width = 6.5, device = "pdf",
+    filename = "data/paper_figs/method_plot.pdf"
+)
 
 # save learning curve figure
 ggsave(make_learning_curve(),
