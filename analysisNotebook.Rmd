@@ -21,6 +21,7 @@ library(ggbeeswarm)
 library(ez) #for ANOVAs
 library(effectsize) # for eta-squared
 library(BayesFactor)
+library(bayestestR)
 
 ```
 
@@ -82,6 +83,7 @@ rot_all <- read_delim("data/bl_corrected/bl_corrected_data.csv",
                                                 ppt = col_factor(),
                                                 exp = col_factor(),
                                                 block_num = col_factor(),
+                                                trial_set = col_factor(),
                                                 reach_type = col_factor()))
 
 # separate the nocursor and training data
@@ -189,13 +191,15 @@ TukeyHSD(temp_ANOVA)
 ```
 Bayes Factors
 ```{r, include=FALSE}
-anovaBF(mean_devs ~ exp, data = wo_strat_init_blocks, progress=FALSE)
 
 tmp_bf_abr_ramp <- bayes_t_test(wo_strat_init_blocks, "exp", "abrupt", "ramped", "mean_devs")
 tmp_bf_stp_ramp <- bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "ramped", "mean_devs")
 tmp_bf_stp_abr <- bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "abrupt", "mean_devs")
 ```
 ```{r}
+bf <- anovaBF(mean_devs ~ exp, data = wo_strat_init_blocks, progress=FALSE)
+print(bf)
+bayesfactor_inclusion(bf)
 print(tmp_bf_abr_ramp)
 print(tmp_bf_stp_ramp)
 print(tmp_bf_stp_abr)
@@ -233,13 +237,13 @@ TukeyHSD(no_cur_ANOVA)
 ```
 Bayes Factors
 ```{r, include=FALSE}
-anovaBF(mean_devs ~ exp, data = wo_strat_final_blocks, progress=FALSE)
 
 tmp_bf_abr_ramp <- bayes_t_test(wo_strat_final_blocks, "exp", "abrupt", "ramped", "mean_devs")
 tmp_bf_stp_ramp <- bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "ramped", "mean_devs")
 tmp_bf_stp_abr <- bayes_t_test(wo_strat_final_blocks, "exp", "stepped", "abrupt", "mean_devs")
 ```
 ```{r}
+anovaBF(mean_devs ~ exp, data = wo_strat_final_blocks, progress=FALSE)
 print(tmp_bf_abr_ramp)
 print(tmp_bf_stp_ramp)
 print(tmp_bf_stp_abr)
@@ -293,13 +297,13 @@ TukeyHSD(no_cur_ANOVA)
 
 Bayes Factors
 ```{r, include=FALSE}
-anovaBF(strategy ~ exp, data = strat_initial_blocks, progress=FALSE)
 
 tmp_bf_abr_ramp <- bayes_t_test(strat_initial_blocks, "exp", "abrupt", "ramped", "strategy")
 tmp_bf_stp_ramp <- bayes_t_test(strat_initial_blocks, "exp", "stepped", "ramped", "strategy")
 tmp_bf_stp_abr <- bayes_t_test(strat_initial_blocks, "exp", "stepped", "abrupt", "strategy")
 ```
 ```{r}
+anovaBF(strategy ~ exp, data = strat_initial_blocks, progress=FALSE)
 print(tmp_bf_abr_ramp)
 print(tmp_bf_stp_ramp)
 print(tmp_bf_stp_abr)
@@ -337,19 +341,19 @@ TukeyHSD(no_cur_ANOVA)
 ```
 Bayes Factors
 ```{r, include=FALSE}
-anovaBF(strategy ~ exp, data = strat_final_blocks, progress=FALSE)
 
 tmp_bf_abr_ramp <- bayes_t_test(strat_final_blocks, "exp", "abrupt", "ramped", "strategy")
 tmp_bf_stp_ramp <- bayes_t_test(strat_final_blocks, "exp", "stepped", "ramped", "strategy")
 tmp_bf_stp_abr <- bayes_t_test(strat_final_blocks, "exp", "stepped", "abrupt", "strategy")
 ```
 ```{r}
+anovaBF(strategy ~ exp, data = strat_final_blocks, progress=FALSE)
 print(tmp_bf_abr_ramp)
 print(tmp_bf_stp_ramp)
 print(tmp_bf_stp_abr)
 ```
 
-3. Compare blocks 1 and 4 for abrupt and gradual data
+3. Compare strategy use in blocks 1 and 4 for abrupt and ramp data
 
 
 ```{r}
@@ -384,16 +388,19 @@ training_summary_per_trial <- rot_training %>%
 
 #training_summary$rotation_angle <- factor(training_summary$rotation_angle, levels=c("-15", "-30", "-45", "-60"))
 training_summary_per_trial$trial_num_cont <- training_summary_per_trial$trial_num_cont - 66
+
+# make trial sets factor
+
 ```
 
 
-## Statistics
+## Init vs block 4 tatistics
 
 Plot of relevant groups
 
 ```{r}
-rot_training_trial_sets <- rot_training %>%
-  filter(trial_set != 10 & trial_set != 20) %>%
+training_trial_sets_04 <- rot_training %>%
+  filter(trial_set == 1 | trial_set == 3) %>%
   group_by(exp, ppt, trial_set) %>%
   summarise(angular_dev_mean = mean(angular_dev), 
             sd = sd(angular_dev), 
@@ -405,17 +412,40 @@ rot_training_trial_sets <- rot_training %>%
   #           ci = vector_confint(angular_dev_mean),
   #           n = n(), .groups = "drop")
 
-head(rot_training_trial_sets)
+head(training_trial_sets_04)
 ```
 
 ```{r}
-plot_desc_group_density(rot_training_trial_sets, "trial_set", "angular_dev_mean", subgroup = "exp", title = "Training trial sets")
+plot_desc_group_density(training_trial_sets_04, "trial_set", "angular_dev_mean", subgroup = "exp", title = "Training trial sets")
+```
+### Anova for the trial sets
+```{r}
+#performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
+temp_ANOVA <- training_trial_sets_04 %>%
+  ezANOVA(wid = ppt,
+        dv = angular_dev_mean, 
+        within = .(trial_set),
+        between = exp,
+        detailed = TRUE)
+
+temp_ANOVA
 ```
 
-We confirm that all groups learn
+```{r}
+bf_test <- anovaBF(angular_dev_mean ~ exp * trial_set + ppt, data = training_trial_sets_04, whichRandom = "ppt", progress=FALSE)
+print(bf_test)
+bayesfactor_inclusion(bf_test)
+```
 
 ```{r}
-training_final_trial_set <- rot_training_trial_sets %>% 
+plot(bf_test)
+```
+
+
+## We confirm that all groups learn by block 4
+
+```{r}
+training_final_trial_set <- training_trial_sets_04 %>% 
   filter(trial_set == '3')
 ```
 
@@ -447,17 +477,50 @@ TukeyHSD(training_ANOVA)
 
 Bayes Factors
 ```{r, include=FALSE}
-anovaBF(angular_dev_mean ~ exp, data = training_final_trial_set, progress=FALSE)
+test_bf <- anovaBF(angular_dev_mean ~ exp, data = training_final_trial_set, progress=FALSE)
 
 tmp_bf_abr_ramp <- bayes_t_test(training_final_trial_set, "exp", "abrupt", "ramped", "angular_dev_mean")
 tmp_bf_stp_ramp <- bayes_t_test(training_final_trial_set, "exp", "stepped", "ramped", "angular_dev_mean")
 tmp_bf_stp_abr <- bayes_t_test(training_final_trial_set, "exp", "stepped", "abrupt", "angular_dev_mean")
 ```
 ```{r}
+print(test_bf)
+bayesfactor_inclusion(test_bf)
 print(tmp_bf_abr_ramp)
 print(tmp_bf_stp_ramp)
 print(tmp_bf_stp_abr)
 ```
+
+## End of block 1 learning
+
+```{r}
+training_trial_sets_1 <- rot_training %>%
+  filter(trial_set == 2) %>%
+  group_by(exp, ppt, trial_set) %>%
+  summarise(angular_dev_mean = mean(angular_dev), 
+            sd = sd(angular_dev), 
+            ci = vector_confint(angular_dev),
+            n = n(), .groups = "drop")
+  # group_by(exp, trial_set) %>%
+  # summarise(trial_set_mean = mean(angular_dev_mean), 
+  #           sd = sd(angular_dev_mean), 
+  #           ci = vector_confint(angular_dev_mean),
+  #           n = n(), .groups = "drop")
+
+head(training_trial_sets_1)
+```
+
+```{r, include=FALSE}
+# bayes t-test for end of block 1 learning
+
+tmp_bf_abr_ramp <- bayes_t_test(training_trial_sets_1, "exp", "abrupt", "ramped", "angular_dev_mean")
+
+```
+```{r}
+t.test(angular_dev_mean ~ exp, data = training_trial_sets_1)
+print(tmp_bf_abr_ramp)
+```
+
 
 # Combining all data
 
@@ -629,7 +692,7 @@ plot_desc_group_density(ind_nocur_stepped_detailed_summary, "block_num_detailed"
 ```
 
 
-
+## Implicit aftereffect decay
 ```{r}
 #performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
 temp_ANOVA <- data_ind %>% 
@@ -653,27 +716,13 @@ summary(aov(slope ~ exp*block_num + Error(ppt/(exp*block_num)),
 bf = anovaBF(slope ~ exp*block_num + ppt, 
              data=filter(data_ind, strat_use == 'Without Strategy'), 
              whichRandom="ppt")
-bf
+print(bf)
+bayesfactor_inclusion(bf)
 
 ```
-```{r}
-plot(bf)
-```
 
-```{r}
-#performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
-temp_ANOVA <- data_ind %>% 
-  filter(strat_use == 'With Strategy') %>%
-  ezANOVA(wid = ppt,
-        dv = slope, 
-        within = .(block_num),
-        between = exp,
-        detailed = TRUE)
-#show and ANOVA + assumptions
-print(temp_ANOVA$ANOVA)
-```
 
-Bayes Factors
+## Explicit strategy use decay
 ```{r}
 #performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
 temp_ANOVA <- data_ind %>% 
@@ -686,13 +735,101 @@ temp_ANOVA <- data_ind %>%
 #show and ANOVA + assumptions
 print(temp_ANOVA$ANOVA)
 ```
+```{r}
+# mixed effects bayes anova
+bf <- anovaBF(slope ~ exp*block_num + ppt, 
+             data=filter(data_ind, strat_use == 'Explicit Strategy'), 
+             whichRandom="ppt")
+print(bf)
+bayesfactor_inclusion(bf)
+```
+
+## Block agnostic implicit aftereffects decay
+```{r}
+# make individual table
+data_blockcollapsed <- data %>%
+        group_by(exp, ppt, strat_use) %>%
+        summarise(
+            ind_mean = mean(angular_dev),
+            sd = sd(angular_dev),
+            ci = vector_confint(angular_dev),
+            slope = decay_fit(trial_in_block, angular_dev)[2],
+            intercept = decay_fit(trial_in_block, angular_dev)[1],
+            n = n(), .groups = "drop"
+        )
+```
+
+Descriptive stats
+```{r}
+# descriptives
+data_blockcollapsed %>% 
+  filter(strat_use == 'Without Strategy') %>%
+  group_by(exp) %>%
+  summarise(mean = mean(slope), 
+            sd = sd(slope), 
+            ci = vector_confint(slope),
+            n = n())
+```
+
+
+
+```{r}
+#performing a mixed effects model? (ezANOVA says it can't perform stuff on unbalanced data..)
+temp_ANOVA <- data_blockcollapsed %>% 
+  filter(strat_use == 'Without Strategy') %>%
+  ezANOVA(wid = ppt,
+        dv = slope,
+        between = exp,
+        detailed = TRUE)
+```
+
+
+```{r}
+#show and ANOVA + assumptions
+print(temp_ANOVA$ANOVA)
+```
+```{r}
+# mixed effects bayes anova
+bf = anovaBF(slope ~ exp, 
+             data=filter(data_blockcollapsed, strat_use == 'Without Strategy'))
+print(bf)
+bayesfactor_inclusion(bf)
+```
+
+non-ez anova
+```{r}
+temp_ANOVA <- aov(slope ~ exp, data = filter(data_blockcollapsed, strat_use == 'Without Strategy'))
+
+#show ANOVA + assumptions
+print(summary(temp_ANOVA), digits = 6)
+eta_squared(temp_ANOVA)
+TukeyHSD(temp_ANOVA)
+```
+
+
+```{r, include=FALSE}
+
+tmp_bf_abr_ramp <- bayes_t_test(filter(data_blockcollapsed, strat_use == 'Without Strategy'), "exp", "abrupt", "ramped", "slope")
+tmp_bf_stp_ramp <- bayes_t_test(filter(data_blockcollapsed, strat_use == 'Without Strategy'), "exp", "stepped", "ramped", "slope")
+tmp_bf_stp_abr <- bayes_t_test(filter(data_blockcollapsed, strat_use == 'Without Strategy'), "exp", "stepped", "abrupt", "slope")
+```
+```{r}
+print(tmp_bf_abr_ramp)
+print(tmp_bf_stp_ramp)
+print(tmp_bf_stp_abr)
+```
 
 
 
 
 
 
-# Older reach training analysis
+
+
+
+
+
+# Older reach training analysis (deprecated?)
 We use the blocks of interest
 ```{r}
 rot_training_ana_blocks <- rot_training %>%
@@ -718,7 +855,6 @@ print(training_anova)
 ```
 ### Post hoc test: 
 Note the Tukey's HSD is for INDEPENDENT tests. Doesn't work for repeated measures like we have here (blocks)
-For the old paper, we just report ANOVA results, no post hocs for these.
 
 ```{r}
 #descriptives
@@ -766,152 +902,3 @@ p <- p +
 
 # ggsave(p, height = 7, width = 10, device = "svg", filename = "data/paper_figs/training_plot_blocks.svg")
 ```
-# Additional Analyses
-## Rebounds
-
-We start with the baseline-corrected reach data (rot_training).
-```{r}
-# make a list of rebound trials
-rebound_trials <- c(46, 67, 112, 133, 178, 199, 244) #block 4 only has 1 rebound trial
-pre_reb_trials <- rebound_trials - 1
-
-rot_rebounds <- rot_training %>%
-  filter(trial_num_cont %in% rebound_trials) %>%
-  select(-block_num)
-
-rot_rebounds$pre_reb_dev <- rot_training %>%
-  filter(trial_num_cont %in% pre_reb_trials) %>%
-  select(angular_dev) %>% as_vector()
-
-rot_rebounds$decay <- rot_rebounds$pre_reb_dev - rot_rebounds$angular_dev
-
-rot_rebounds$trial_num_cont <- as.factor(rot_rebounds$trial_num_cont)
-
-```
-
-
-
-```{r}
-
-#descriptives
-desc_temp <- rot_rebounds %>%
-  group_by(exp, trial_num_cont, NULL) %>%
-  summarise(mean_dev = mean(angular_dev), 
-            sd = sd(angular_dev), 
-            ci = vector_confint(angular_dev),
-            n = n(), .groups = "drop")
-desc_temp$trial_num_cont <- as.factor(desc_temp$trial_num_cont)
-rot_rebounds$trial_num_cont <- as.factor(rot_rebounds$trial_num_cont)
-
-p <- desc_temp %>%
-  ggplot(aes(trial_num_cont, mean_dev, colour = exp)) +
-  ggtitle("Rebounds during training") +
-  geom_beeswarm(data = rot_rebounds,
-                aes(y = angular_dev),
-                dodge.width = 0.6, alpha = 0.2) +
-  geom_point(size = 5, alpha = 0.6, 
-             position = position_dodge(width = .6)) + 
-  geom_linerange(aes(ymin = mean_dev - ci, ymax = mean_dev + ci), 
-                 lwd = 5, alpha = 0.4, 
-                 position = position_dodge(width = .6))
-
-p
-
-```
-
-
-```{r}
-#descriptives
-desc_temp <- rot_rebounds %>%
-  group_by(exp, trial_num_cont) %>%
-  summarise(mean_decay = mean(decay), 
-            sd = sd(decay), 
-            ci = vector_confint(decay),
-            n = n(), .groups = "drop")
-
-p <- desc_temp %>%
-  ggplot(aes(trial_num_cont, mean_decay, colour = exp)) +
-  ggtitle("Decay during no-cursor trials training") +
-  geom_beeswarm(data = rot_rebounds,
-                aes(y = decay),
-                dodge.width = 0.6, alpha = 0.2) +
-  geom_point(size = 5, alpha = 0.6, 
-             position = position_dodge(width = .6)) + 
-  geom_linerange(aes(ymin = mean_decay - ci, ymax = mean_decay + ci), 
-                 lwd = 5, alpha = 0.4, 
-                 position = position_dodge(width = .6)) +
-  scale_y_continuous(limits = c(-30, 75), 
-                     breaks = c(0, 15, 30, 45, 60), 
-                     name = "decay over no-cursor trials (°)")
-
-p
-
-```
-
-
-## Measures of explicit learning
-
-We measure explicit adaptation, but it is sometimes taken as the difference between performance in training trials and implicit probes.
-Note: It may be that contextual cues like the cursor being present matters (e.g. in contextual inference models)
-
-Let's compare the 2:
-per ppt, we need.. implicit learning per block (from nucursor data), training performance per block (from the previous section)
-
-```{r}
-# we can start with the implicit data. Formatted so that each participant has some values for each block
-pre_reb_devs <- rot_rebounds %>% 
-  filter(trial_num_cont %in% c(46, 112, 178, 244)) %>%
-  select(ppt, pre_reb_dev) 
-
-pre_reb_devs <- pre_reb_devs %>% 
-  bind_cols(block_num = as.factor(rep(1:4, nrow(pre_reb_devs)/4)))
-  
-per_ppt_format <- nocur_summary %>%
-  select(-sd, -ci, -n) %>% #getting rid of sanity check variables
-  spread(strat_use, mean_devs) %>%
-  rename(without_strat_dev = '0'  , with_strat_dev = '1')
-
-combined_data <- left_join(per_ppt_format, pre_reb_devs, by = c("ppt", "block_num")) %>%
-  mutate(measured_exp = with_strat_dev - without_strat_dev, inferred_exp = pre_reb_dev - without_strat_dev)
-
-
-head(combined_data)
-```
-
-Plot the different explicit measures
-
-```{r}
-#descriptives
-desc_temp <- combined_data %>%
-  group_by(exp, block_num) %>%
-  summarise(measured_exp_mean = mean(measured_exp), 
-            measured_exp_sd = sd(measured_exp), 
-            measured_exp_ci = vector_confint(measured_exp),
-            inferred_exp_mean = mean(inferred_exp), 
-            inferred_exp_sd = sd(inferred_exp), 
-            inferred_exp_ci = vector_confint(inferred_exp),
-            n = n(), .groups = "drop")
-head(desc_temp)
-```
-
-```{r}
-p <- desc_temp %>%
-  ggplot(aes(block_num, measured_exp_mean, colour = exp)) +
-  ggtitle("Measured vs inferred explicit (circles = measured)") +
-  geom_point(size = 5, alpha = 0.6, 
-             position = position_dodge(width = .6)) + 
-  geom_linerange(aes(ymin = measured_exp_mean - measured_exp_ci, ymax = measured_exp_mean + measured_exp_ci), 
-                 lwd = 5, alpha = 0.4, 
-                 position = position_dodge(width = .6)) +
-  geom_point(aes(y = inferred_exp_mean),
-             size = 5, alpha = 0.6, shape = 18,
-             position = position_dodge(width = .6)) + 
-  geom_linerange(aes(ymin = inferred_exp_mean - inferred_exp_ci, ymax = inferred_exp_mean + inferred_exp_ci), 
-                 lwd = 5, alpha = 0.4, 
-                 position = position_dodge(width = .6)) + 
-  scale_y_continuous(name = "explicit learning (°)") +
-  scale_x_discrete(name = "block")
-  
-p
-```
-

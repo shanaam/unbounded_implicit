@@ -241,6 +241,8 @@ bayes_t_test <- function(df, group_title, group1, group2, dv) {
   null <- res.bayes$BF01 / (1 + res.bayes$BF01)
   # post.H1:
   alt <- 1 / (1 + res.bayes$BF01)
+  
+  bf10 = 1/res.bayes$BF01
 
-  return(sprintf("BF01: %.3f, P(D|H0): %.3f, P(D|H1): %.3f, Groups: %s vs %s", res.bayes$BF01, null, alt, group1, group2))
+  return(sprintf("BF10: %.3f, P(D|H0): %.3f, P(D|H1): %.3f, Groups: %s vs %s", bf10, null, alt, group1, group2))
 }

@@ -144,7 +144,7 @@ make_method_plot <- function() {
     # set x and y axis labels
     p <- p +
         labs(
-            x = "Block Number",
+            x = "Block",
             y = "Visuomotor Rotation (°)"
         )
     # set y tick labels
@@ -257,7 +257,7 @@ make_learning_curve <- function() {
     # set x and y axis labels
     p <- p +
         labs(
-            x = "Block Number",
+            x = "Block",
             y = "Hand Path Correction (°)"
         )
     # set y tick labels
@@ -290,7 +290,7 @@ make_trial_set_figure <- function() {
 
     # filter out the trials that are not in the trial set
     data <- data %>%
-        filter(trial_set < 10) %>%
+        filter(trial_set == 1 | trial_set == 3) %>%
         unite(exp_trial_set, exp, trial_set)
 
     # make individual table
@@ -354,21 +354,21 @@ make_trial_set_figure <- function() {
 
     # set colour palette
     p <- p + scale_color_manual(values = c(
-        pallete$abrupt, pallete$abrupt, pallete$abrupt,
-        pallete$ramped, pallete$ramped, pallete$ramped,
+        pallete$abrupt, pallete$abrupt,
+        pallete$ramped, pallete$ramped,
         pallete$stepped, pallete$stepped
     )) + scale_shape_manual(values = c(
-        1, 1, 19,
-        1, 1, 19,
+        1, 19,
+        1, 19,
         1, 19
     ))
 
     # change x axis labels
     p <- p + scale_x_discrete(
         labels = c(
-            "Init", "1", "4",
-            "Init", "1", "4",
-            "Init", "4"
+            "Init", "Fin",
+            "Init", "Fin",
+            "Init", "Fin"
         )
     )
 
@@ -392,7 +392,7 @@ make_trial_set_figure <- function() {
 
 # save the method figure
 ggsave(make_method_plot(),
-    height = 3, width = 6.5, device = "pdf",
+    height = 2, width = 6.5, device = "pdf",
     filename = "data/paper_figs/method_plot.pdf"
 )
 
