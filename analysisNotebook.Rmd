@@ -22,6 +22,7 @@ library(ez) #for ANOVAs
 library(effectsize) # for eta-squared
 library(BayesFactor)
 library(bayestestR)
+library("ggpubr")
 
 ```
 
@@ -373,7 +374,104 @@ eta_squared(btwn_block_strat_ANOVA)
 TukeyHSD(btwn_block_strat_ANOVA)
 ```
 
+## Analysis of low strategy use 
+```{r}
+# first tag people with low strategy in block 4
+nocur_summary_wide <- nocur_summary_wide %>%
+  mutate(block_4_strat = case_when(block_num == 4 & strategy > 5 ~ 1,
+         block_num == 4 & strategy <= 5 ~ 0)) %>%
+  fill(block_4_strat, .direction = "up") 
 
+nocur_summary_wide$block_4_strat = as.factor(nocur_summary_wide$block_4_strat)
+
+block_4_nocur <- nocur_summary_wide %>%
+  filter(block_num == 4)
+```
+
+```{r}
+# plot
+p <- block_4_nocur %>%
+  ggplot(aes(block_num, strategy)) +
+  geom_beeswarm(
+    aes(colour = block_4_strat),
+    alpha = 0.5,
+    size = 1
+    ) +
+  facet_grid(~exp) +
+        xlab("Block") + ylab("With - without strategy (°)")
+
+p
+```
+
+```{r}
+# plot
+p <- block_4_nocur %>%
+  ggplot(aes(block_num, strat_0)) +
+  geom_beeswarm(
+    aes(colour = block_4_strat),
+    alpha = 0.5,
+    size = 1
+    ) +
+  facet_grid(~exp)+
+        xlab("Block") + ylab("Hand deviation without strategy (°)")
+
+p
+```
+```{r}
+block_4_strat_aov <- aov(strat_0 ~ exp * block_4_strat, data = block_4_nocur)
+print(summary(block_4_strat_aov), digits = 6)
+eta_squared(block_4_strat_aov)
+TukeyHSD(block_4_strat_aov)
+```
+
+```{r}
+# plot
+p <- block_4_nocur %>%
+  ggplot(aes(strategy, strat_0)) +
+  geom_point(
+    alpha = 0.5,
+    size = 1
+    ) +
+  facet_grid(~exp)+
+        xlab("Block") + ylab("Hand deviation without strategy (°)")
+
+p
+```
+
+```{r}
+# plot
+p <- block_4_nocur %>%
+  ggplot(aes(strategy, strat_0)) +
+  geom_point(
+    aes(colour = block_4_strat),
+    alpha = 0.5,
+    size = 1
+    ) +
+  facet_grid(~exp)+
+        xlab("Strategy (°)") + ylab("Hand deviation without strategy (°)")
+
+p
+```
+
+```{r}
+p <- block_4_nocur %>%
+  filter(exp == "stepped") %>%
+  ggscatter(x = "strategy", y = "strat_0", 
+            title = "Step group",
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Strategy (°)", ylab = "Hand deviation without strategy (°)")
+p
+```
+```{r}
+p <- block_4_nocur %>%
+  ggscatter(x = "strategy", y = "strat_0", 
+            title = "All groups",
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Strategy (°)", ylab = "Hand deviation without strategy (°)")
+p
+```
 
 # Reach training analysis
 
