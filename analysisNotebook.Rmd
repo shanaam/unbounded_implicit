@@ -947,6 +947,68 @@ print(tmp_bf_stp_ramp)
 print(tmp_bf_stp_abr)
 ```
 
+# Movement time differences
+
+```{r}
+# isolate trials up to 46 trials
+early_trial_df <- rot_all %>%
+  mutate(
+    trial_num_cont = case_when(
+      exp == "ramped" ~ (trial_num_cont - 18),
+      TRUE ~ trial_num_cont
+      )
+    ) %>%
+  filter(trial_num_cont <= 46) %>%
+  mutate(
+    move_time = case_when(
+      exp == "abrupt" ~ (lead(time_s) - time_s),
+      TRUE ~ time_s
+      )
+    ) %>%
+  filter(trial_num_cont <= 30)
+
+# plot
+# group by experiment and trial_num_cont
+# then make a summary df
+data_group <- early_trial_df %>%
+    group_by(exp, trial_num_cont) %>%
+    summarise(
+        group_mean = mean(move_time),
+        sd = sd(move_time),
+        ci = vector_confint(move_time),
+        n = n(), .groups = "drop"
+    )
+
+# set up the plot
+p <- data_group %>%
+    ggplot(aes(
+        x = trial_num_cont, y = group_mean,
+        color = exp, group = exp
+    ))
+
+# add classic theme
+p <- p + theme_classic()
+
+# add the confidence intervals and data
+p <- p + geom_ribbon(aes(
+    x = trial_num_cont,
+    ymin = group_mean - ci,
+    ymax = group_mean + ci,
+    fill = exp,
+    group = exp,
+), colour = NA, alpha = 0.3) +
+    geom_line(aes(colour = exp))
+
+# set x and y axis labels
+p <- p +
+    labs(
+        x = "Block",
+        y = "Trial time (s)"
+    )
+p
+```
+
+
 ```{r, include=FALSE}
 # end
 ```
