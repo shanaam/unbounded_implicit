@@ -109,6 +109,20 @@ makeNoCurOmnibus <- function() {
         }
 
         maxVrows$exp <- expVersion
+        
+        # add columns for trial start and end times
+        # summarize by trial
+        trial_summary_df <- df %>%
+          group_by(trial_num) %>%
+          summarise(start_time = min(time_s),
+                    end_time = max(time_s))
+        
+        # add to maxVrows
+        maxVrows$start_time <- trial_summary_df $start_time
+        maxVrows$end_time <- trial_summary_df $end_time
+        maxVrows <- maxVrows %>%
+          mutate(trial_time = end_time - start_time)
+        
 
         # save this one df to datalist
         datalist[[i]] <- maxVrows
@@ -126,7 +140,8 @@ makeNoCurOmnibus <- function() {
     "terminalfeedback_bool", "rotation_angle", "targetangle_deg",
     "targetdistance_percmax", "homex_px", "homey_px", "targetx_px",
     "targety_px", "time_s", "mousex_px", "mousey_px", "cursorx_px",
-    "cursory_px", "ppt", "stratuse", "exp"
+    "cursory_px", "ppt", "stratuse", "exp",
+    "start_time", "end_time", "trial_time"
   )
 
   # get the angles
@@ -184,6 +199,22 @@ makeTrainingOmnibus <- function() {
         maxVrows$old_trial_num <- NULL
 
         maxVrows$trial_num_cont <- seq(from = trial_counter, length.out = nrow(maxVrows))
+        
+        
+        # add columns for trial start and end times
+        # summarize by trial
+        trial_summary_df <- df %>%
+          group_by(trial_num) %>%
+          summarise(start_time = min(time_s),
+                    end_time = max(time_s))
+        
+        # add to maxVrows
+        maxVrows$start_time <- trial_summary_df $start_time
+        maxVrows$end_time <- trial_summary_df $end_time
+        maxVrows <- maxVrows %>%
+          mutate(trial_time = end_time - start_time)
+        
+        
         # save this one df to datalist
         datalist[[i]] <- maxVrows
 
@@ -212,8 +243,24 @@ makeTrainingOmnibus <- function() {
 }
 
 ## ----
-## Run the functions this needs fixing..
-# library(future)
+## Run the functions in parallel
+library(future)
+
+make_omnibus_parallel <- function(){
+  require(future)
+  
+  res1 %<-% makeTrainingOmnibus() %seed% TRUE
+  res2 %<-% makeNoCurOmnibus() %seed% TRUE
+  
+  # wait for results
+  res = c(res1, res2)
+  return(res)
+}
+
+plan(multisession, workers = 4)
+make_omnibus_parallel()
+plan(sequential)
+
 # plan(multiprocess)
 
 # NOTE: %<-% is a "future assignment"
@@ -221,26 +268,3 @@ makeTrainingOmnibus <- function() {
 # tempjob2 %<-% makeTrainingOmnibus()
 
 # temp.list <- lapply(ls(pattern = "temp"), get)
-
-
-
-
-
-
-
-
-
-
-# # testing
-# test <- data.frame("x" = c(1, 2, 3, 4, 5, 6, 7, 8))
-#
-# test$y <- c(1, 2, 3, 4, 5, 6, 7, 8)
-# test$x <- factor(test$x)
-#
-# p <- ggplot (data = test, aes(x, y, colour = x)) +
-#   geom_point() +
-#   scale_colour_brewer()
-#
-# p
-#
-# ggsave(p, height = 13, width = 20, device = "svg", filename = "data/test.svg")

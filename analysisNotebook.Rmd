@@ -198,7 +198,7 @@ tmp_bf_stp_ramp <- bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "ramped"
 tmp_bf_stp_abr <- bayes_t_test(wo_strat_init_blocks, "exp", "stepped", "abrupt", "mean_devs")
 ```
 ```{r}
-bf <- anovaBF(mean_devs ~ exp, data = wo_strat_init_blocks, progress=FALSE)
+bf <- anovaBF(mean_devs ~ exp, data = data.frame(wo_strat_init_blocks), progress=FALSE)
 print(bf)
 bayesfactor_inclusion(bf)
 print(tmp_bf_abr_ramp)
@@ -993,7 +993,7 @@ early_trial_df <- rot_all %>%
   filter(trial_num_cont <= 46) %>%
   mutate(
     move_time = case_when(
-      exp == "abrupt" ~ (lead(time_s) - time_s),
+      ((exp == "abrupt") & (time_s > 1000)) ~ (lead(time_s) - time_s),
       TRUE ~ time_s
       )
     ) %>%
@@ -1039,6 +1039,167 @@ p <- p +
     )
 p
 ```
+```{r}
+# isolate trials up to 66 trials
+block_1_df <- rot_training %>%
+  filter(trial_num_cont <= 84) %>%
+  mutate(
+    trial_num_cont = case_when(
+      exp == "ramped" ~ (trial_num_cont - 18),
+      ((exp == "abrupt") | (exp == "stepped")) & (trial_num_cont > 50) ~ (trial_num_cont - 18),
+      TRUE ~ trial_num_cont
+      )
+    )
+
+
+# isolate trials up to 66 trials
+block_4_df <- rot_training %>%
+  filter(trial_num_cont >= 307) %>%
+    mutate(
+    trial_num_cont = case_when(
+      trial_num_cont > 360 ~ (trial_num_cont - 18),
+      TRUE ~ trial_num_cont
+      )
+    )
+  
+```
+
+```{r}
+# plot
+# group by experiment and trial_num_cont
+# then make a summary df
+data_group <- block_1_df %>%
+    group_by(exp, trial_num_cont) %>%
+    summarise(
+        group_mean = mean(trial_time),
+        sd = sd(trial_time),
+        ci = vector_confint(trial_time),
+        n = n(), .groups = "drop"
+    )
+
+# set up the plot
+p <- data_group %>%
+    ggplot(aes(
+        x = trial_num_cont, y = group_mean,
+        color = exp, group = exp
+    ))
+
+# add classic theme
+p <- p + theme_classic()
+
+# add the confidence intervals and data
+p <- p + geom_ribbon(aes(
+    x = trial_num_cont,
+    ymin = group_mean - ci,
+    ymax = group_mean + ci,
+    fill = exp,
+    group = exp,
+), colour = NA, alpha = 0.3) +
+    geom_line(aes(colour = exp))
+
+# set x and y axis labels
+p <- p +
+    labs(
+        x = "Block",
+        y = "Trial time (s)"
+    )
+p
+```
+```{r}
+# plot
+# group by experiment and trial_num_cont
+# then make a summary df
+data_group <- block_4_df %>%
+    group_by(exp, trial_num_cont) %>%
+    summarise(
+        group_mean = mean(trial_time),
+        sd = sd(trial_time),
+        ci = vector_confint(trial_time),
+        n = n(), .groups = "drop"
+    )
+
+# set up the plot
+p <- data_group %>%
+    ggplot(aes(
+        x = trial_num_cont, y = group_mean,
+        color = exp, group = exp
+    ))
+
+# add classic theme
+p <- p + theme_classic()
+
+# add the confidence intervals and data
+p <- p + geom_ribbon(aes(
+    x = trial_num_cont,
+    ymin = group_mean - ci,
+    ymax = group_mean + ci,
+    fill = exp,
+    group = exp,
+), colour = NA, alpha = 0.3) +
+    geom_line(aes(colour = exp))
+
+# set x and y axis labels
+p <- p +
+    labs(
+        x = "Block",
+        y = "Trial time (s)"
+    )
+p
+```
+
+```{r}
+trial_time_aov <- aov(trial_time ~ exp , data = filter(block_4_df, trial_num_cont >= 364))
+
+#show ANOVA + assumptions
+print(summary(trial_time_aov), digits = 6)
+eta_squared(trial_time_aov)
+TukeyHSD(trial_time_aov)
+
+```
+
+
+```{r}
+# plot
+# group by experiment and trial_num_cont
+# then make a summary df
+data_group <- rot_training %>%
+    group_by(exp, trial_num_cont) %>%
+    summarise(
+        group_mean = mean(trial_time),
+        sd = sd(trial_time),
+        ci = vector_confint(trial_time),
+        n = n(), .groups = "drop"
+    )
+
+# set up the plot
+p <- data_group %>%
+    ggplot(aes(
+        x = trial_num_cont, y = group_mean,
+        color = exp, group = exp
+    ))
+
+# add classic theme
+p <- p + theme_classic()
+
+# add the confidence intervals and data
+p <- p + geom_ribbon(aes(
+    x = trial_num_cont,
+    ymin = group_mean - ci,
+    ymax = group_mean + ci,
+    fill = exp,
+    group = exp,
+), colour = NA, alpha = 0.3) +
+    geom_line(aes(colour = exp))
+
+# set x and y axis labels
+p <- p +
+    labs(
+        x = "Block",
+        y = "Trial time (s)"
+    )
+p
+```
+
 
 
 ```{r, include=FALSE}
