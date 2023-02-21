@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# notebook html files
+*.nb.html
